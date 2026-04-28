@@ -16,7 +16,19 @@
 				<v-divider></v-divider>
 				<v-card-actions v-if="actions">
 					<v-spacer></v-spacer>
+					<slot name="left-actions"></slot>
 					<slot name="prepend-actions"></slot>
+					<v-btn color="primary" outlined small @click="saveActionDialog" :disabled="disableSave" v-if="!hideSave">
+						<v-progress-circular
+							v-if="saveLoading"
+							indeterminate
+							size="14"
+							width="2"
+							color="primary"
+							style="margin-right: 6px;"
+						></v-progress-circular>
+						<v-icon v-else small left>{{saveIcon}}</v-icon>{{labelSave}}
+					</v-btn>
 					<v-btn color="error" outlined small @click="closeActionDialog" v-if="mode=='dialog'">
 						<v-icon small left>mdi-close</v-icon>{{labelClose}}
 					</v-btn>
@@ -87,6 +99,9 @@
 			labelSave: {
 				default: 'Save'
 			},
+			saveIcon: {
+				default: 'mdi-content-save'
+			},
 			title: {
 				default: 'Title'
 			},
@@ -139,6 +154,9 @@
 			}
 		},
 		methods: {
+			saveActionDialog: function(){
+				this.$emit('save')
+			},
 			closeActionDialog: function(){
 				var self = this
 				self.value = false

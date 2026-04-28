@@ -2856,6 +2856,33 @@ module.exports = {
                         project_budget_label: projectBudgetLabel,
                     })
                 })
+                // For operational items, re-group consecutive items that share the same
+                // Charged To label so the cell merges correctly (rowspan by label).
+                var opItems = self.remainingBudgetItems.slice()
+                var i = 0
+                while (i < opItems.length) {
+                    if (!opItems[i].is_operational) { i++; continue }
+                    var label = opItems[i].project_budget_label
+                    var j = i + 1
+                    while (j < opItems.length && opItems[j].is_operational && opItems[j].project_budget_label === label) j++
+                    var count = j - i
+                    opItems[i] = Object.assign({}, opItems[i], {
+                        show_project_budget: true,
+                        project_budget_rowspan: count,
+                        show_remaining: true,
+                        remaining_rowspan: count,
+                    })
+                    for (var k = i + 1; k < j; k++) {
+                        opItems[k] = Object.assign({}, opItems[k], {
+                            show_project_budget: false,
+                            project_budget_rowspan: 1,
+                            show_remaining: false,
+                            remaining_rowspan: 1,
+                        })
+                    }
+                    i = j
+                }
+                self.remainingBudgetItems = opItems
                 self.showOperationalRemainingBreakdown = self.remainingBudgetItems.some(
                     (item) => !!item.is_operational,
                 )

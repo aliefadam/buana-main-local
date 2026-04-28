@@ -68,7 +68,7 @@
             </template>
         </v-overflow-menu>
 
-        <v-action-dialog save-icon="mdi-filter-plus" label-save="Apply" :class="formClass" :max-width="formMaxWidth" :width="formWidth" v-model="dialogFilter" :disableAnimation="alwaysShowForm" :title="'Filter '+name" @save="applyFilter">
+        <v-action-dialog save-icon="mdi-magnify" label-save="Apply" :class="formClass" :max-width="formMaxWidth" :width="formWidth" v-model="dialogFilter" :disableAnimation="alwaysShowForm" :title="'Filter '+name" @save="applyFilter">
             <!-- Use this slot to add before `add` form -->
             <slot name="prepend-dialog-filter"></slot>
 			<v-select single-line hide-details dense v-model="selectedAvailableFilter" :items="availableFilter" label="Filter" style=" max-width: 300px !important;" @change="onFilterSelect"></v-select>
