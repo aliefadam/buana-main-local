@@ -393,8 +393,10 @@ module.exports = {
           disabled: false,
           clearable: true,
           visible: true,
-          required: true,
-          form: true,
+          // required: true,
+          required: false,
+          // form: true,
+          form: false,
           filter: true,
           groupable: false,
           data_value: ["Consumable", "Tools", "Project", "Asset"],
@@ -1338,6 +1340,8 @@ module.exports = {
         });
     },
     confirmSaveAdd: async function () {
+      // Requirement input is intentionally hidden in form; send fallback value.
+      this.headersObj.requirement.data = "-";
       if (this.isOperationalBudgetInsufficient()) {
         App.errorMsg("Sisa Budget Tidak Cukup");
         const err = new Error("INSUFFICIENT_OPERATIONAL_BUDGET_ADD");
@@ -1355,6 +1359,8 @@ module.exports = {
       }
     },
     confirmSaveEdit: async function () {
+      // Requirement input is intentionally hidden in form; send fallback value.
+      this.headersObj.requirement.data = "-";
       if (this.isOperationalBudgetInsufficient()) {
         App.errorMsg("Sisa Budget Tidak Cukup");
         const err = new Error("INSUFFICIENT_OPERATIONAL_BUDGET_EDIT");

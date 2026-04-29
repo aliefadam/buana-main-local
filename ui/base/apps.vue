@@ -12,10 +12,14 @@
     "
   >
     <div class="welcome-header">
+      <div class="welcome-company">Internal Buana Multi Teknik</div>
       <div class="text-h5 font-weight-bold welcome-text">
         Welcome, {{ App.userData.data[0].name }}
       </div>
       <div class="text-body-2 welcome-sub">Dashboard Aplikasi</div>
+    </div>
+    <div class="section-divider">
+      <span class="divider-label">Modul Tersedia</span>
     </div>
     <v-row
       flex-col
@@ -154,21 +158,60 @@
 }
 
 .welcome-header {
-  padding: 0.25em 0.5em 0.75em 0.75em;
+  padding: 1.5em 0.5em 1em 0.5em;
   margin-top: 0.75em;
-  margin-bottom: 0.25em;
+  margin-bottom: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcome-company {
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  margin-bottom: 6px;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .welcome-text {
   line-height: 1.2;
   letter-spacing: -0.3px;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif !important;
 }
 
 .welcome-sub {
   opacity: 0.5;
-  margin-top: 2px;
+  margin-top: 4px;
   font-size: 0.8em;
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 1.25em 0.75em 0.5em 0.75em;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.divider-label {
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  white-space: nowrap;
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
