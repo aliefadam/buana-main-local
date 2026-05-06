@@ -502,21 +502,29 @@ module.exports = {
           formatter: ["id", "dept_name"],
           input: function (val) {
             var self = App.$get("subledger");
-            if (val.data) {
-              self.headersObj.type_operational_id.data = false;
-              self.headersObj.sub_type_operational_id.data = false;
-              self.headersObj.type_operational_id.update = false;
-              self.headersObj.sub_type_operational_id.update = false;
+            self.headersObj.type_operational_id.data = false;
+            self.headersObj.sub_type_operational_id.data = false;
+            self.headersObj.type_operational_id.update = false;
+            self.headersObj.sub_type_operational_id.update = false;
 
+            delete self.headersObj.sub_type_operational_id.options.filter
+              .type_operational_id;
+
+            if (val.data) {
+              self.headersObj.type_operational_id.options.filter.department_id =
+                val.data;
+              self.headersObj.sub_type_operational_id.options.filter.department_id =
+                val.data;
+            } else {
+              delete self.headersObj.type_operational_id.options.filter
+                .department_id;
               delete self.headersObj.sub_type_operational_id.options.filter
-                .type_operational_id;
+                .department_id;
             }
             if (self.headersObj.project_type.data === "Operational") {
               var deptId = self.headersObj.dept_id.data;
               var typeId = self.headersObj.type_operational_id.data;
               var subTypeId = self.headersObj.sub_type_operational_id.data;
-              self.headersObj.type_operational_id.options.filter.department_id =
-                val.data;
               if (deptId && typeId && subTypeId) {
                 self.fetchAndSetOperationalRemainingBudget(
                   deptId,
@@ -571,6 +579,15 @@ module.exports = {
             if (val.data) {
               self.headersObj.sub_type_operational_id.options.filter.type_operational_id =
                 val.data;
+              if (self.headersObj.dept_id.data) {
+                self.headersObj.sub_type_operational_id.options.filter.department_id =
+                  self.headersObj.dept_id.data;
+              }
+              self.headersObj.sub_type_operational_id.data = false;
+              self.headersObj.sub_type_operational_id.update = false;
+            } else {
+              delete self.headersObj.sub_type_operational_id.options.filter
+                .type_operational_id;
               self.headersObj.sub_type_operational_id.data = false;
               self.headersObj.sub_type_operational_id.update = false;
             }
@@ -1453,10 +1470,25 @@ module.exports = {
           self.headersObj.type_operational_id.form = true;
           self.headersObj.sub_type_operational_id.form = true;
 
+          if (val.dept_id) {
+            self.headersObj.type_operational_id.options.filter.department_id =
+              val.dept_id;
+            self.headersObj.sub_type_operational_id.options.filter.department_id =
+              val.dept_id;
+          } else {
+            delete self.headersObj.type_operational_id.options.filter
+              .department_id;
+            delete self.headersObj.sub_type_operational_id.options.filter
+              .department_id;
+          }
+
           // Set filter sub_type berdasarkan type yang sudah ada
           if (val.type_operational_id) {
             self.headersObj.sub_type_operational_id.options.filter.type_operational_id =
               val.type_operational_id;
+          } else {
+            delete self.headersObj.sub_type_operational_id.options.filter
+              .type_operational_id;
           }
 
           // Tampilkan Remaining Budget jika operational lengkap

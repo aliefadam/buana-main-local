@@ -9,7 +9,7 @@ class SubtypeModel extends Model
     protected $table = 'type_sub_operationals';
     protected $returnType     = 'object';
     protected $primaryKey = 'id';
-    protected $allowedFields = ["id", "name", "type_operational_id", "is_active", "use_memo", "created_at", "updated_at"];
+    protected $allowedFields = ["id", "name", "type_operational_id", "department_id", "is_active", "use_memo", "created_at", "updated_at"];
 
     protected function initialize()
     {

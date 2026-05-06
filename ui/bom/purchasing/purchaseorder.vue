@@ -2293,9 +2293,11 @@ module.exports = {
                     // Child row (selectable option)
                     if (row && row.value !== undefined) {
                         var selectedText = row.text || row.value
+                        // Simpan hanya nama item (tanpa description setelah " - ").
+                        var itemName = String(selectedText).split(' - ')[0].trim()
                         formatted.push({
                             text: selectedText,
-                            value: selectedText
+                            value: itemName
                         })
                     }
                 })
