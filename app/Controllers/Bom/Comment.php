@@ -64,6 +64,26 @@ class Comment extends ResourceController
 				$data["created_by"] = $s["userid"];
 			$insert = $model->insert($data);
 			$modelP->update($json->purchase_order_id, ["approved"=>0]);
+
+            // Send WA notification to the same PO approval group when PO is revised.
+            try {
+                $poInfo = $modelP->info($json->purchase_order_id);
+                if ($poInfo[0] && isset($poInfo[1][0])) {
+                    $po = $poInfo[1][0];
+                    $note = isset($data["notes"]) ? trim((string)$data["notes"]) : "-";
+                    $msgWa = "PO direvisi\r\n"
+                        . "PO No: " . ($po->po_no ?? "-") . "\r\n"
+                        . "Title: " . ($po->title ?? "-") . "\r\n"
+                        . "Supplier: " . ($po->supplier ?? "-") . "\r\n"
+                        . "Catatan: " . ($note === "" ? "-" : $note);
+
+                    helper(['Wa_helper']);
+                    sendWa('120363316928543400@g.us', $msgWa);
+                }
+            } catch (\Throwable $th) {
+                // Keep revise action successful even if WA sending fails.
+            }
+
 			$response = [
 				'status'   => true,
 				'data'    => 'Data Saved'

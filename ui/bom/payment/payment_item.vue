@@ -84,6 +84,18 @@
                                     <div v-if="dept.type_sub_operational_name">
                                         <b>Tipe Sub Operasional :</b> {{ dept.type_sub_operational_name }}
                                     </div>
+                                    <div>
+                                        <span style="display: inline-block; min-width: 110px;">
+                                            <b>Alokasi:</b>
+                                        </span>
+                                        <span v-if="getAllocationNumerator(props.item, dept) > 0 && getAllocationBase(props.item, dept) > 0">
+                                            {{ getAllocationPct(props.item, dept) }}%
+                                            <span style="color: #888;">
+                                                ({{ formatAmount(getAllocationNumerator(props.item, dept)) }} / {{ formatAmount(getAllocationBase(props.item, dept)) }})
+                                            </span>
+                                        </span>
+                                        <span v-else>-</span>
+                                    </div>
                                     
                                 </li>
                             </ul>
@@ -668,7 +680,10 @@
                 return total;
             },
             getCombinedAllocationTotalForRef: function(refNo) {
-                var total = this.getProjectTotalForRef(refNo) + this.getPersediaanTotal(refNo);
+                var total = this.getProjectTotalForRef(refNo) +
+                    this.getPersediaanTotal(refNo) +
+                    this.getOperationalTotal(refNo) +
+                    this.getRndTotal(refNo);
                 if (total > 0) {
                     return total;
                 }
@@ -793,6 +808,22 @@
             },
             getPersediaanTotal: function(refNo) {
                 var list = this.getPersediaanList(refNo);
+                var total = 0;
+                for (var i = 0; i < list.length; i++) {
+                    total += this.getRowTotalPrice(list[i]);
+                }
+                return total;
+            },
+            getOperationalTotal: function(refNo) {
+                var list = this.getOperationalList(refNo);
+                var total = 0;
+                for (var i = 0; i < list.length; i++) {
+                    total += this.getRowTotalPrice(list[i]);
+                }
+                return total;
+            },
+            getRndTotal: function(refNo) {
+                var list = this.getRndList(refNo);
                 var total = 0;
                 for (var i = 0; i < list.length; i++) {
                     total += this.getRowTotalPrice(list[i]);

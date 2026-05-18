@@ -87,12 +87,20 @@
           {{ projectInfoError }}
         </span>
         <span v-else>
-          <span v-if="hasProjectTypeInfo(props.item.po_no || props.item.invoice_no)">
-            <span v-if="getProjectList(props.item.po_no || props.item.invoice_no).length">
+          <span
+            v-if="hasProjectTypeInfo(props.item.po_no || props.item.invoice_no)"
+          >
+            <span
+              v-if="
+                getProjectList(props.item.po_no || props.item.invoice_no).length
+              "
+            >
               <b>Project(s):</b>
               <ul>
                 <li
-                  v-for="project in getProjectList(props.item.po_no || props.item.invoice_no)"
+                  v-for="project in getProjectList(
+                    props.item.po_no || props.item.invoice_no,
+                  )"
                   :key="
                     (project.project_no ||
                       project.project_name ||
@@ -129,10 +137,14 @@
                       {{ getAllocationPct(props.item, project) }}%
                       <span style="color: #888"
                         >({{
-                          formatAmount(getAllocationNumerator(props.item, project))
+                          formatAmount(
+                            getAllocationNumerator(props.item, project),
+                          )
                         }}
                         /
-                        {{ formatAmount(getAllocationBase(props.item, project)) }})</span
+                        {{
+                          formatAmount(getAllocationBase(props.item, project))
+                        }})</span
                       >
                     </span>
                     <span v-else>-</span>
@@ -140,7 +152,9 @@
                 </li>
               </ul>
             </span>
-            <span v-if="hasPersediaan(props.item.po_no || props.item.invoice_no)">
+            <span
+              v-if="hasPersediaan(props.item.po_no || props.item.invoice_no)"
+            >
               <b>Persediaan</b>
               <ul>
                 <li
@@ -150,7 +164,9 @@
                     border-bottom: 1px solid #eee;
                   "
                 >
-                  <div style="font-weight: bold; color: #1976d2">Persediaan</div>
+                  <div style="font-weight: bold; color: #1976d2">
+                    Persediaan
+                  </div>
                   <div>
                     <span style="display: inline-block; min-width: 110px">
                       <b>Alokasi:</b>
@@ -159,18 +175,18 @@
                       v-if="
                         getPersediaanAllocationNumerator(
                           props.item,
-                          props.item.po_no || props.item.invoice_no
+                          props.item.po_no || props.item.invoice_no,
                         ) > 0 &&
                         getPersediaanAllocationBase(
                           props.item,
-                          props.item.po_no || props.item.invoice_no
+                          props.item.po_no || props.item.invoice_no,
                         ) > 0
                       "
                     >
                       {{
                         getPersediaanAllocationPct(
                           props.item,
-                          props.item.po_no || props.item.invoice_no
+                          props.item.po_no || props.item.invoice_no,
                         )
                       }}%
                       <span style="color: #888"
@@ -178,8 +194,8 @@
                           formatAmount(
                             getPersediaanAllocationNumerator(
                               props.item,
-                              props.item.po_no || props.item.invoice_no
-                            )
+                              props.item.po_no || props.item.invoice_no,
+                            ),
                           )
                         }}
                         /
@@ -187,8 +203,8 @@
                           formatAmount(
                             getPersediaanAllocationBase(
                               props.item,
-                              props.item.po_no || props.item.invoice_no
-                            )
+                              props.item.po_no || props.item.invoice_no,
+                            ),
                           )
                         }})</span
                       >
@@ -198,11 +214,18 @@
                 </li>
               </ul>
             </span>
-            <span v-if="getOperationalList(props.item.po_no || props.item.invoice_no).length">
+            <span
+              v-if="
+                getOperationalList(props.item.po_no || props.item.invoice_no)
+                  .length
+              "
+            >
               <b>Operational(s):</b>
               <ul>
                 <li
-                  v-for="dept in getOperationalList(props.item.po_no || props.item.invoice_no)"
+                  v-for="dept in getOperationalList(
+                    props.item.po_no || props.item.invoice_no,
+                  )"
                   :key="
                     'op-' +
                     (dept.dept_code || dept.dept_name || '') +
@@ -222,24 +245,55 @@
                   </div>
                   <div>
                     <span style="margin-bottom: 5px" v-if="dept.dept_code">
-                      <b>Department :</b> ({{ dept.dept_code }}) {{ dept.dept_name }}
+                      <b>Department :</b> ({{ dept.dept_code }})
+                      {{ dept.dept_name }}
                     </span>
                   </div>
-                  <div style="margin-bottom: 5px" v-if="dept.type_operational_name">
+                  <div
+                    style="margin-bottom: 5px"
+                    v-if="dept.type_operational_name"
+                  >
                     <b>Tipe Operasional :</b> {{ dept.type_operational_name }}
                   </div>
                   <div v-if="dept.type_sub_operational_name">
                     <b>Tipe Sub Operasional :</b>
                     {{ dept.type_sub_operational_name }}
                   </div>
+                  <div>
+                    <span style="display: inline-block; min-width: 110px">
+                      <b>Alokasi:</b>
+                    </span>
+                    <span
+                      v-if="
+                        getAllocationNumerator(props.item, dept) > 0 &&
+                        getAllocationBase(props.item, dept) > 0
+                      "
+                    >
+                      {{ getAllocationPct(props.item, dept) }}%
+                      <span style="color: #888"
+                        >({{
+                          formatAmount(getAllocationNumerator(props.item, dept))
+                        }}
+                        /
+                        {{ formatAmount(getAllocationBase(props.item, dept)) }})
+                      </span>
+                    </span>
+                    <span v-else>-</span>
+                  </div>
                 </li>
               </ul>
             </span>
-            <span v-if="getRndList(props.item.po_no || props.item.invoice_no).length">
+            <span
+              v-if="
+                getRndList(props.item.po_no || props.item.invoice_no).length
+              "
+            >
               <b>R&D(s):</b>
               <ul>
                 <li
-                  v-for="rnd in getRndList(props.item.po_no || props.item.invoice_no)"
+                  v-for="rnd in getRndList(
+                    props.item.po_no || props.item.invoice_no,
+                  )"
                   :key="
                     'rnd-' +
                     (rnd.project_no || '') +
@@ -334,7 +388,7 @@
           :download="props.item.proof_of_transfer.trim().split('+++')[1]"
           target="_blank"
           :href="
-            'https://internal.buanamultiteknik.com/api/uploads/invoice' +
+            'https://main.buanamultiteknik.com/api/uploads/invoice' +
             props.item.id +
             '/' +
             props.item.proof_of_transfer.trim().split('+++')[0]
@@ -374,7 +428,7 @@
             :download="props.item.proof_of_transfer.trim().split('+++')[1]"
             target="_blank"
             :href="
-              'https://internal.buanamultiteknik.com/api/uploads/invoice' +
+              'https://main.buanamultiteknik.com/api/uploads/invoice' +
               props.item.id +
               '/' +
               props.item.proof_of_transfer.trim().split('+++')[0]
@@ -1267,42 +1321,23 @@ module.exports = {
           data_value: ["Project", "Operational", "Persediaan", "Asset", "R&D"],
           input: function (val) {
             var self = App.$get("invoice");
-            if (val.data) {
-              if (val.data == "Project") {
-                self.headersObj.project_id.form = true;
-                self.headersObj.budget_id.form = true;
-                self.headersObj.type_operational_id.form = false;
-                self.headersObj.sub_type_operational_id.form = false;
-                self.headersObj.dept_id.form = false;
-                self.headersObj.rnd_id.form = false;
-              } else if (val.data == "Persediaan") {
-                self.headersObj.project_id.form = false;
-                self.headersObj.budget_id.form = false;
-                self.headersObj.type_operational_id.form = false;
-                self.headersObj.sub_type_operational_id.form = false;
-                self.headersObj.rnd_id.form = false;
-              } else if (val.data == "Asset") {
-                self.headersObj.project_id.form = false;
-                self.headersObj.budget_id.form = false;
-                self.headersObj.type_operational_id.form = false;
-                self.headersObj.sub_type_operational_id.form = false;
-                self.headersObj.rnd_id.form = false;
-              } else if (val.data == "R&D") {
-                self.headersObj.project_id.form = false;
-                self.headersObj.budget_id.form = false;
-                self.headersObj.type_operational_id.form = false;
-                self.headersObj.sub_type_operational_id.form = false;
-                self.headersObj.dept_id.form = false;
-                self.headersObj.rnd_id.form = true;
-              } else {
-                self.headersObj.project_id.form = false;
-                self.headersObj.budget_id.form = false;
-                self.headersObj.type_operational_id.form = true;
-                self.headersObj.sub_type_operational_id.form = true;
-                self.headersObj.dept_id.form = true;
-                self.headersObj.rnd_id.form = false;
-              }
+            self.applyProjectTypeFieldVisibility(val.data);
+            self.clearRemainingBudgetState();
+            if (val.data !== "Project") {
+              self.headersObj.budget_id.data = null;
             }
+            if (val.data !== "Operational") {
+              self.headersObj.dept_id.data = null;
+              self.headersObj.type_operational_id.data = null;
+              self.headersObj.sub_type_operational_id.data = null;
+              delete self.headersObj.type_operational_id.options.filter
+                .department_id;
+              delete self.headersObj.sub_type_operational_id.options.filter
+                .department_id;
+              delete self.headersObj.sub_type_operational_id.options.filter
+                .type_operational_id;
+            }
+            self.triggerRemainingBudgetFetch();
             self.headers = App.updateObject(self.headers);
           },
         },
@@ -1369,6 +1404,75 @@ module.exports = {
             filterType: {},
             filterCondition: {},
           },
+          input: function (data) {
+            var self = App.$get("invoice");
+            self.headersObj.budget_id.options.filter.project_id =
+              data.data || -1;
+            self.headersObj.budget_id.data = null;
+            self.headersObj.budget_id.update = null;
+            self.clearRemainingBudgetState();
+            self.headers = App.updateObject(self.headers);
+          },
+        },
+        {
+          text: "Department",
+          value: "dept_id",
+          align: "start",
+          sortable: true,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: false,
+          required: false,
+          form: false,
+          filter: true,
+          groupable: false,
+          clearable: true,
+          url: App.url + "bom/department",
+          searchby: ["id", "dept_name"],
+          formatter: ["id", "dept_name"],
+          input: function (val) {
+            var self = App.$get("invoice");
+            self.headersObj.type_operational_id.data = false;
+            self.headersObj.sub_type_operational_id.data = false;
+            self.headersObj.type_operational_id.update = false;
+            self.headersObj.sub_type_operational_id.update = false;
+
+            delete self.headersObj.sub_type_operational_id.options.filter
+              .type_operational_id;
+
+            if (val.data) {
+              self.headersObj.type_operational_id.options.filter.department_id =
+                val.data;
+              self.headersObj.sub_type_operational_id.options.filter.department_id =
+                val.data;
+            } else {
+              delete self.headersObj.type_operational_id.options.filter
+                .department_id;
+              delete self.headersObj.sub_type_operational_id.options.filter
+                .department_id;
+            }
+
+            if (self.headersObj.project_type.data === "Operational") {
+              self.triggerRemainingBudgetFetch();
+            }
+            self.headers = App.updateObject(self.headers);
+          },
+          options: {
+            filter: {},
+            filterType: {},
+            filterCondition: {
+              id: "or",
+              dept_name: "or",
+            },
+          },
+          paging: true,
+          page: "1",
+          limit: "10",
+          alias: "dept_name",
         },
         {
           text: "Type Department",
@@ -1395,8 +1499,20 @@ module.exports = {
             if (val.data) {
               self.headersObj.sub_type_operational_id.options.filter.type_operational_id =
                 val.data;
+              if (self.headersObj.dept_id.data) {
+                self.headersObj.sub_type_operational_id.options.filter.department_id =
+                  self.headersObj.dept_id.data;
+              }
               self.headersObj.sub_type_operational_id.data = false;
               self.headersObj.sub_type_operational_id.update = false;
+            } else {
+              delete self.headersObj.sub_type_operational_id.options.filter
+                .type_operational_id;
+              self.headersObj.sub_type_operational_id.data = false;
+              self.headersObj.sub_type_operational_id.update = false;
+            }
+            if (self.headersObj.project_type.data === "Operational") {
+              self.triggerRemainingBudgetFetch();
             }
             self.headers = App.updateObject(self.headers);
           },
@@ -1433,6 +1549,13 @@ module.exports = {
           url: App.url + "bom/subtype",
           searchby: ["id", "name"],
           formatter: ["id", "name"],
+          input: function () {
+            var self = App.$get("invoice");
+            if (self.headersObj.project_type.data === "Operational") {
+              self.triggerRemainingBudgetFetch();
+            }
+            self.headers = App.updateObject(self.headers);
+          },
           options: {
             filter: {},
             filterType: {},
@@ -1515,46 +1638,18 @@ module.exports = {
           alias: "budget_name",
           input: function (data) {
             const self = App.$get("invoice");
-
-            const project_id = self.headersObj.project_id.data;
-            const budget_id = self.headersObj.budget_id.data;
-
-            /*if (project_id && budget_id) {
-                        self.headersObj.text_sisa_budget.form = true;
-                        self.headersObj.text_sisa_budget.data = `Menghitung Sisa Budget...`;
-                        self.headers = App.updateObject(self.headers)
-                    	
-                        axios.get(`https://sales.buanamultiteknik.com/api/budget/project-budget/index?project_id=${project_id}&budget_id=${budget_id}`)
-                        .then(function (response) {
-                            try {
-                                const remaining = response?.data?.budget?.remaining;
-                    	
-                                if (remaining === undefined || remaining === null) {
-                                    throw new Error("Data kosong");
-                                }
-                    	
-                                const formattedRemaining = new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                }).format(remaining);
-                    	
-                                self.headersObj.text_sisa_budget.data = `Sisa Budget : ${formattedRemaining}`;
-                    	
-                            } catch (error) {
-                                self.headersObj.text_sisa_budget.data = `Sisa Budget : -`;
-                            }
-                    	
-                            self.headers = App.updateObject(self.headers);
-                        })
-                        .catch(function (error) {
-                            // Kalau request benar-benar gagal (404, 500, dll)
-                            self.headersObj.text_sisa_budget.data = `Sisa Budget : -`;
-                            self.headers = App.updateObject(self.headers);
-                        });
-                    }*/
+            self.triggerRemainingBudgetFetch();
+            self.headers = App.updateObject(self.headers);
           },
+        },
+        {
+          text: "Sisa Budget",
+          value: "text_sisa_budget",
+          type: "varchar",
+          form: false,
+          visible: false,
+          readonly: true,
+          sortable: false,
         },
         {
           text: "Invoice Detail",
@@ -1733,26 +1828,53 @@ module.exports = {
               App.$get("invoice").headersObj.uraian.form = true;
               App.$get("invoice").headersObj.supplier_id.form = true;
               App.$get("invoice").headersObj.charge1.form = true;
-              App.$get("invoice").headersObj.charge1_desc.true = true;
+              App.$get("invoice").headersObj.charge1_desc.form = true;
               App.$get("invoice").headersObj.charge2.form = true;
               App.$get("invoice").headersObj.charge2_desc.form = true;
               App.$get("invoice").headersObj.total_price.form = true;
 
               App.$get("invoice").headersObj.project_id.form = true;
               App.$get("invoice").headersObj.project_type.form = true;
+              App.$get("invoice").headersObj.budget_id.form = false;
+              App.$get("invoice").headersObj.type_operational_id.form = false;
+              App.$get("invoice").headersObj.sub_type_operational_id.form =
+                false;
+              if (App.$get("invoice").headersObj.dept_id) {
+                App.$get("invoice").headersObj.dept_id.form = false;
+              }
+              App.$get("invoice").headersObj.rnd_id.form = false;
 
               App.$get("invoice").headersObj.payment_pct.form = true;
               // App.$get('invoice').headersObj.grand_total_price.form = true
               App.$get("invoice").headersObj.po_id.form = false;
 
               App.$get("invoice").headersObj.po_id.data = null;
+              var self = App.$get("invoice");
+              var currentProjectType =
+                self.headersObj.project_type.data ||
+                (self.selected && self.selected.project_type);
+              if (currentProjectType) {
+                self.applyProjectTypeFieldVisibility(currentProjectType);
+              } else {
+                self.headersObj.project_id.form = true;
+              }
+              self.triggerRemainingBudgetFetch();
             } else {
               App.$get("invoice").headersObj.project_id.form = false;
+              App.$get("invoice").headersObj.project_type.form = false;
+              App.$get("invoice").headersObj.budget_id.form = false;
+              App.$get("invoice").headersObj.type_operational_id.form = false;
+              App.$get("invoice").headersObj.sub_type_operational_id.form =
+                false;
+              if (App.$get("invoice").headersObj.dept_id) {
+                App.$get("invoice").headersObj.dept_id.form = false;
+              }
+              App.$get("invoice").headersObj.rnd_id.form = false;
 
               App.$get("invoice").headersObj.uraian.form = false;
               App.$get("invoice").headersObj.supplier_id.form = false;
               App.$get("invoice").headersObj.charge1.form = false;
-              App.$get("invoice").headersObj.charge1_desc.true = false;
+              App.$get("invoice").headersObj.charge1_desc.form = false;
               App.$get("invoice").headersObj.charge2.form = false;
               App.$get("invoice").headersObj.charge2_desc.form = false;
               App.$get("invoice").headersObj.total_price.form = false;
@@ -1769,7 +1891,11 @@ module.exports = {
               App.$get("invoice").headersObj.total_price.data = null;
               App.$get("invoice").headersObj.payment_pct.data = null;
               // App.$get('invoice').headersObj.grand_total_price.data = null
+              App.$get("invoice").clearRemainingBudgetState();
             }
+            App.$get("invoice").headers = App.updateObject(
+              App.$get("invoice").headers,
+            );
           },
           visible: false,
         },
@@ -2227,6 +2353,7 @@ module.exports = {
       apiData: [],
       isProjectInfoLoading: false,
       projectInfoError: null,
+      remainingBudgetValue: null,
     };
   },
   computed: {
@@ -2274,6 +2401,165 @@ module.exports = {
     },
   },
   methods: {
+    setHeaderForm: function (key, val) {
+      if (this.headersObj[key]) {
+        this.headersObj[key].form = val;
+      }
+    },
+    applyProjectTypeFieldVisibility: function (projectType) {
+      var type = String(projectType || "")
+        .trim()
+        .toLowerCase();
+
+      this.setHeaderForm("project_id", false);
+      this.setHeaderForm("budget_id", false);
+      this.setHeaderForm("type_operational_id", false);
+      this.setHeaderForm("sub_type_operational_id", false);
+      this.setHeaderForm("dept_id", false);
+      this.setHeaderForm("rnd_id", false);
+
+      if (type === "project") {
+        this.setHeaderForm("project_id", true);
+        this.setHeaderForm("budget_id", true);
+      } else if (type === "operational") {
+        this.setHeaderForm("type_operational_id", true);
+        this.setHeaderForm("sub_type_operational_id", true);
+        this.setHeaderForm("dept_id", true);
+      } else if (type === "r&d") {
+        this.setHeaderForm("rnd_id", true);
+      }
+    },
+    setRemainingBudgetMessage: function (message, isError) {
+      this.remainingBudgetValue = null;
+      this.headersObj.text_sisa_budget.form = true;
+      this.headersObj.text_sisa_budget.data = message;
+      this.headers = App.updateObject(this.headers);
+    },
+    applyRemainingBudgetState: function (remaining) {
+      var formatted = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(remaining);
+      this.remainingBudgetValue = Number(remaining);
+      this.headersObj.text_sisa_budget.form = true;
+      this.headersObj.text_sisa_budget.data = "Sisa Budget : " + formatted;
+      this.headers = App.updateObject(this.headers);
+    },
+    clearRemainingBudgetState: function () {
+      this.remainingBudgetValue = null;
+      this.headersObj.text_sisa_budget.form = false;
+      this.headersObj.text_sisa_budget.data = null;
+    },
+    fetchAndSetRemainingBudget: function (projectId, budgetId) {
+      var self = this;
+      self.setRemainingBudgetMessage("Calculate Remaining Budget...", false);
+      axios
+        .get(
+          "https://panel.buanamultiteknik.com/api/budget/project-budget/index?project_id=" +
+            projectId +
+            "&budget_id=" +
+            budgetId,
+        )
+        .then(function (response) {
+          try {
+            var remaining = response?.data?.budget?.remaining;
+            if (remaining === undefined || remaining === null) {
+              throw new Error("Data kosong");
+            }
+            self.applyRemainingBudgetState(remaining);
+          } catch (error) {
+            self.setRemainingBudgetMessage(
+              "Error : Failed to load remaining budget",
+              true,
+            );
+          }
+        })
+        .catch(function () {
+          self.setRemainingBudgetMessage(
+            "Error : Failed to load remaining budget",
+            true,
+          );
+        });
+    },
+    fetchAndSetOperationalRemainingBudget: function (
+      deptId,
+      typeOperationalId,
+      subTypeOperationalId,
+    ) {
+      var self = this;
+      self.setRemainingBudgetMessage("Calculate Remaining Budget...", false);
+      axios
+        .get(
+          "https://panel.buanamultiteknik.com/api/budget/operational-budget/index?dept_id=" +
+            deptId +
+            "&type_operational_id=" +
+            typeOperationalId +
+            "&sub_type_operational_id=" +
+            subTypeOperationalId,
+        )
+        .then(function (response) {
+          try {
+            var remaining = response?.data?.budget?.remaining;
+            if (remaining === undefined || remaining === null) {
+              throw new Error("Data kosong");
+            }
+            self.applyRemainingBudgetState(remaining);
+          } catch (error) {
+            self.setRemainingBudgetMessage(
+              "Error : Failed to load remaining budget",
+              true,
+            );
+          }
+        })
+        .catch(function () {
+          self.setRemainingBudgetMessage(
+            "Error : Failed to load remaining budget",
+            true,
+          );
+        });
+    },
+    triggerRemainingBudgetFetch: function () {
+      var projectType =
+        this.headersObj.project_type.data ||
+        (this.selected && this.selected.project_type);
+
+      if (projectType === "Project") {
+        var projectId =
+          this.headersObj.project_id.data ||
+          (this.selected && this.selected.project_id);
+        var budgetId =
+          this.headersObj.budget_id.data ||
+          (this.selected && this.selected.budget_id);
+        if (projectId && budgetId) {
+          this.fetchAndSetRemainingBudget(projectId, budgetId);
+        } else {
+          this.clearRemainingBudgetState();
+        }
+      } else if (projectType === "Operational") {
+        var deptId =
+          (this.headersObj.dept_id && this.headersObj.dept_id.data) ||
+          (this.selected && this.selected.dept_id);
+        var typeOperationalId =
+          this.headersObj.type_operational_id.data ||
+          (this.selected && this.selected.type_operational_id);
+        var subTypeOperationalId =
+          this.headersObj.sub_type_operational_id.data ||
+          (this.selected && this.selected.sub_type_operational_id);
+        if (deptId && typeOperationalId && subTypeOperationalId) {
+          this.fetchAndSetOperationalRemainingBudget(
+            deptId,
+            typeOperationalId,
+            subTypeOperationalId,
+          );
+        } else {
+          this.clearRemainingBudgetState();
+        }
+      } else {
+        this.clearRemainingBudgetState();
+      }
+    },
     toNumber: function (val) {
       if (val === null || val === undefined || val === "") {
         return 0;
@@ -2335,7 +2621,11 @@ module.exports = {
       return total;
     },
     getCombinedAllocationTotalForRef: function (refNo) {
-      var total = this.getProjectTotalForRef(refNo) + this.getPersediaanTotal(refNo);
+      var total =
+        this.getProjectTotalForRef(refNo) +
+        this.getPersediaanTotal(refNo) +
+        this.getOperationalTotal(refNo) +
+        this.getRndTotal(refNo);
       if (total > 0) {
         return total;
       }
@@ -2392,7 +2682,7 @@ module.exports = {
         var key =
           baseNo ||
           (p.project_name || "").trim() ||
-          ((p.project_type || "").trim() + "|" + (p.allocation || "").trim());
+          (p.project_type || "").trim() + "|" + (p.allocation || "").trim();
         if (!key) {
           continue;
         }
@@ -2401,7 +2691,8 @@ module.exports = {
           continue;
         }
         var current = byKey[key];
-        var currentIsNis = String(current.allocation || "").toUpperCase() === "NIS";
+        var currentIsNis =
+          String(current.allocation || "").toUpperCase() === "NIS";
         var candidateIsNis = String(p.allocation || "").toUpperCase() === "NIS";
         if (currentIsNis && !candidateIsNis) {
           byKey[key] = p;
@@ -2417,7 +2708,12 @@ module.exports = {
         return [];
       }
       return this.apiData.filter(function (p) {
-        return p.po_no === refNo && String(p.project_type || "").trim().toLowerCase() === "persediaan";
+        return (
+          p.po_no === refNo &&
+          String(p.project_type || "")
+            .trim()
+            .toLowerCase() === "persediaan"
+        );
       });
     },
     hasPersediaan: function (refNo) {
@@ -2428,7 +2724,12 @@ module.exports = {
         return [];
       }
       return this.apiData.filter(function (p) {
-        return p.po_no === refNo && String(p.project_type || "").trim().toLowerCase() === "r&d";
+        return (
+          p.po_no === refNo &&
+          String(p.project_type || "")
+            .trim()
+            .toLowerCase() === "r&d"
+        );
       });
     },
     hasAsset: function (refNo) {
@@ -2436,7 +2737,12 @@ module.exports = {
         return false;
       }
       return this.apiData.some(function (p) {
-        return p.po_no === refNo && String(p.project_type || "").trim().toLowerCase() === "asset";
+        return (
+          p.po_no === refNo &&
+          String(p.project_type || "")
+            .trim()
+            .toLowerCase() === "asset"
+        );
       });
     },
     hasProjectTypeInfo: function (refNo) {
@@ -2466,6 +2772,22 @@ module.exports = {
     },
     getPersediaanTotal: function (refNo) {
       var list = this.getPersediaanList(refNo);
+      var total = 0;
+      for (var i = 0; i < list.length; i++) {
+        total += this.getRowTotalPrice(list[i]);
+      }
+      return total;
+    },
+    getOperationalTotal: function (refNo) {
+      var list = this.getOperationalList(refNo);
+      var total = 0;
+      for (var i = 0; i < list.length; i++) {
+        total += this.getRowTotalPrice(list[i]);
+      }
+      return total;
+    },
+    getRndTotal: function (refNo) {
+      var list = this.getRndList(refNo);
       var total = 0;
       for (var i = 0; i < list.length; i++) {
         total += this.getRowTotalPrice(list[i]);
@@ -2521,7 +2843,8 @@ module.exports = {
       this.isProjectInfoLoading = true;
       this.projectInfoError = null;
 
-      const apiUrl = "https://main.buanamultiteknik.com/api/bom/pobudget/monitoringproject?limit=-1";
+      const apiUrl =
+        "https://main.buanamultiteknik.com/api/bom/pobudget/monitoringproject?limit=-1";
 
       axios
         .get(apiUrl)
@@ -2568,20 +2891,24 @@ module.exports = {
         self.headersObj.uraian.form = true;
         self.headersObj.supplier_id.form = true;
         self.headersObj.charge1.form = true;
-        self.headersObj.charge1_desc.true = true;
+        self.headersObj.charge1_desc.form = true;
         self.headersObj.charge2.form = true;
         self.headersObj.charge2_desc.form = true;
         self.headersObj.total_price.form = true;
         self.headersObj.payment_pct.form = true;
         self.billfObj.exchange_rate.form = true;
         self.headersObj.po_id.form = false;
-        self.headersObj.project_id.form = true;
+        self.headersObj.project_type.form = true;
+        self.applyProjectTypeFieldVisibility(
+          self.selected.project_type || self.headersObj.project_type.data,
+        );
+        self.triggerRemainingBudgetFetch();
         // self.billfObj.reimburse_id.data="96";
       } else {
         self.headersObj.uraian.form = false;
         self.headersObj.supplier_id.form = false;
         self.headersObj.charge1.form = false;
-        self.headersObj.charge1_desc.true = false;
+        self.headersObj.charge1_desc.form = false;
         self.headersObj.charge2.form = false;
         self.headersObj.charge2_desc.form = false;
         self.headersObj.total_price.form = false;
@@ -2589,6 +2916,13 @@ module.exports = {
         self.billfObj.exchange_rate.form = false;
         self.headersObj.po_id.form = true;
         self.headersObj.project_id.form = false;
+        self.headersObj.project_type.form = false;
+        self.headersObj.budget_id.form = false;
+        self.headersObj.type_operational_id.form = false;
+        self.headersObj.sub_type_operational_id.form = false;
+        self.setHeaderForm("dept_id", false);
+        self.headersObj.rnd_id.form = false;
+        self.clearRemainingBudgetState();
         // self.billfObj.reimburse_id.data=null;
       }
       // console.log(this.selected.use_credit_note);
@@ -2599,21 +2933,31 @@ module.exports = {
         self.headersObj.credit_note_id.form = false;
         self.headersObj.credit_note_amount.form = false;
       }
+      self.headers = App.updateObject(self.headers);
     },
     resetHeader: function () {
       var self = this;
       self.headersObj.uraian.form = false;
       self.headersObj.supplier_id.form = false;
       self.headersObj.charge1.form = false;
-      self.headersObj.charge1_desc.true = false;
+      self.headersObj.charge1_desc.form = false;
       self.headersObj.charge2.form = false;
       self.headersObj.charge2_desc.form = false;
       self.headersObj.total_price.form = false;
       self.headersObj.payment_pct.form = false;
       // self.headersObj.grand_total_price.form = false
       self.headersObj.po_id.form = true;
+      self.headersObj.project_type.form = false;
+      self.headersObj.project_id.form = false;
+      self.headersObj.budget_id.form = false;
+      self.headersObj.type_operational_id.form = false;
+      self.headersObj.sub_type_operational_id.form = false;
+      self.setHeaderForm("dept_id", false);
+      self.headersObj.rnd_id.form = false;
       self.headersObj.credit_note_id.form = false;
       self.headersObj.credit_note_amount.form = false;
+      self.clearRemainingBudgetState();
+      self.headers = App.updateObject(self.headers);
     },
     openPOItems: function () {
       var self = this;
@@ -2667,6 +3011,7 @@ module.exports = {
         val.as_reference = parseInt(val.as_reference);
         val.petty_cash = parseInt(val.petty_cash);
         val.use_credit_note = parseInt(val.use_credit_note);
+        self.selected = val;
 
         self.checkHeader();
 
@@ -2687,8 +3032,6 @@ module.exports = {
           self.disableDeleteButton = false;
           self.disableEditButton = false;
         }
-        self.selected = val;
-
         self.poinfObj.currency.data = val.currency;
         self.poinfObj.total_price.data = Number(val.total_price).format(2, 3);
         self.poinfObj.charge1.data = Number(val.charge1).format(2, 3);
@@ -2755,7 +3098,7 @@ module.exports = {
       var name = self.selected.po_no.replace(/\//g, "_").replace(/\-/g, "_");
       var randomid = randomId();
       window.open(
-        "https://internal.buanamultiteknik.com/api/data/reportpo2?id=" +
+        "https://main.buanamultiteknik.com/api/data/reportpo2?id=" +
           self.selected.po_id +
           "&filename=" +
           name +

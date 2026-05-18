@@ -402,6 +402,26 @@ module.exports = {
           data_value: ["Consumable", "Tools", "Project", "Asset"],
         },
         {
+          text: "Tahun Budget",
+          value: "year_budget",
+          align: "start",
+          sortable: true,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          clearable: true,
+          visible: true,
+          required: true,
+          form: true,
+          filter: true,
+          groupable: false,
+          default: new Date().getFullYear().toString(),
+          data_value: [],
+        },
+        {
           text: "Type",
           value: "project_type",
           align: "start",
@@ -1218,6 +1238,20 @@ module.exports = {
     },
   },
   methods: {
+    setYearBudgetOptions: function () {
+      var self = this;
+      var currentYear = new Date().getFullYear();
+      self.headersObj.year_budget.data_value = [
+        currentYear.toString(),
+        (currentYear - 1).toString(),
+        (currentYear - 2).toString(),
+        (currentYear - 3).toString(),
+      ];
+      if (!self.headersObj.year_budget.data) {
+        self.headersObj.year_budget.data = currentYear.toString();
+      }
+      self.headers = App.updateObject(self.headers);
+    },
     setRemainingBudgetMessage: function (message, isError) {
       var self = this;
       if (isError) {
@@ -1525,6 +1559,7 @@ module.exports = {
   },
   mounted: function () {
     var self = this;
+    self.setYearBudgetOptions();
   },
 };
 

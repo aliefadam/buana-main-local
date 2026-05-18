@@ -7,7 +7,7 @@ class PrsubledgerModel extends Model
     protected $table = 'pr_subledger';
     protected $returnType     = 'object';
     protected $primaryKey = 'id';
-    protected $allowedFields = ["id","unit_price","requirement","budget_id","pr_part_id","description","qty", "allocation","project_id", "alokasi_pembelian", "category_item_id", "created_date","created_by","modified_date","modified_by", "flag", "project_type", "type_operational_id", "sub_type_operational_id", "dept_id","currency","exchange_rate","rate_date","rnd_id","is_warning","force_budget_minus_reason"];
+    protected $allowedFields = ["id","unit_price","requirement","budget_id","pr_part_id","description","qty", "allocation","project_id", "alokasi_pembelian", "category_item_id", "created_date","created_by","modified_date","modified_by", "flag", "project_type", "type_operational_id", "sub_type_operational_id", "dept_id","currency","exchange_rate","rate_date","rnd_id","is_warning","force_budget_minus_reason","year_budget"];
 	
 	protected function initialize()
     {
