@@ -171,6 +171,11 @@
                 <span  v-if="props.item.po_no"><b>No PO:</b> <a @click="openReport2">{{props.item.po_no}}</a></span><span v-else><b>No:  {{ props.item.as_reference == 0 ? "" : "As Reference" }}</b></span><br />
                 <b>Title</b> :{{props.item.as_reference == 0 ? props.item.title : props.item.uraian}}  <br />
                 <b>Reference No</b> :{{ props.item.tef_invoice_no }}<br/>
+                <span v-if="props.item.cash_advance_ticket_no">
+                    <b>FINANCE:</b> {{ props.item.cash_advance_ticket_no }}<br />
+                    <b>Matched by:</b> {{ props.item.cash_advance_match_type || '-' }}
+                    <span v-if="props.item.cash_advance_reference">({{ props.item.cash_advance_reference }})</span><br />
+                </span>
                 <!-- <b>Payment Code</b> :{{ props.item.kode_pembayaran }}<br/> -->
                 <b>Supplier</b> :{{ props.item.supplier_name }}<br />
                 <b>Proof of Invoice:</b>

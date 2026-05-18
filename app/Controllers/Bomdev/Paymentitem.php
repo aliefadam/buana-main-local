@@ -28,12 +28,20 @@ class Paymentitem extends ResourceController
                 $json["filterCondition"] = json_decode($json["filterCondition"], true);
                 $json = (Object) $json;
                 $data = $model->read($json);
+				if (!is_array($data[0])) {
+					return $this->respond([
+						'status' => false,
+						'data' => [],
+						'total' => 0,
+						'message' => $data[0],
+					], 200);
+				}
 					
                 return $this->respond(['status' => true, 'data'=>$data[0], 'total' => $data[1]], 200);
             }
             //code...
-        } catch (Exception $e) {
-            return $this->respond(['status' => false, 'data'=>$e->getMessage()], 200);
+        } catch (\Throwable $e) {
+            return $this->respond(['status' => false, 'data'=>[], 'total' => 0, 'message'=>$e->getMessage()], 200);
         }
     }
  

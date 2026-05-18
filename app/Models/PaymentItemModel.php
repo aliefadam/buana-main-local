@@ -17,6 +17,55 @@ class PaymentItemModel extends Model
 		$this->db->query("SET time_zone = '+07:00'");
     }
 
+	private function cashAdvanceSelectSql()
+	{
+		if (
+			!$this->db->tableExists('cash_advance') ||
+			!$this->db->fieldExists('ticket_no', 'cash_advance') ||
+			!$this->db->fieldExists('reference_po', 'cash_advance')
+		) {
+			return "
+		null as cash_advance_ticket_no,
+		null as cash_advance_reference,
+		null as cash_advance_match_type,";
+		}
+
+		return "
+		(
+			select group_concat(distinct ca.ticket_no order by ca.ticket_no separator ', ')
+			from cash_advance ca
+			where trim(coalesce(ca.reference_po, '')) != ''
+			and (
+				trim(ca.reference_po) = trim(p.po_no)
+				or trim(ca.reference_po) = trim(pr.pr_no)
+			)
+		) as cash_advance_ticket_no,
+		(
+			select group_concat(distinct ca.reference_po order by ca.reference_po separator ', ')
+			from cash_advance ca
+			where trim(coalesce(ca.reference_po, '')) != ''
+			and (
+				trim(ca.reference_po) = trim(p.po_no)
+				or trim(ca.reference_po) = trim(pr.pr_no)
+			)
+		) as cash_advance_reference,
+		case
+			when exists (
+				select 1
+				from cash_advance ca
+				where trim(coalesce(ca.reference_po, '')) != ''
+				and trim(ca.reference_po) = trim(p.po_no)
+			) then 'PO'
+			when exists (
+				select 1
+				from cash_advance ca
+				where trim(coalesce(ca.reference_po, '')) != ''
+				and trim(ca.reference_po) = trim(pr.pr_no)
+			) then 'PR'
+			else null
+		end as cash_advance_match_type,";
+	}
+
     function addPrefix($field){
         return 's.'.$field;
     }
@@ -45,8 +94,11 @@ class PaymentItemModel extends Model
 					or (i.project_id = mp.id)
 		";
         
+		$cashAdvanceSelect = $this->cashAdvanceSelectSql();
 		$q2 = "
 		select ".join(',', array_map(array($this, 'addPrefix'), $this->allowedFields)).", i.payment_value, i.invoice_no, i.total_price, i.invoice_date, i.as_reference, i.invoice_doc_url, i.uraian, i.payment_pct, i.proof_of_transfer, i.is_paid, i.paid_date, i.debited_acc, i.transfer_type, i.transaction_code, i.reimburse_id, mp.project_no as project_no, mp.project_name as project_name,
+		pr.pr_no,
+		$cashAdvanceSelect
 		ms.name as supplier_name, ms.bank, ms.bank_account_no, ms.currency, bank_account_name, ms.bic_swift_code, p.title as title,
 		case when i.payment_pct_fiat != 0 then (payment_pct_fiat + i.invoice_charge) - i.invoice_reduction
 		when i.as_reference = 0 then
