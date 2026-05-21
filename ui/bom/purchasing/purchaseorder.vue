@@ -1,13 +1,13 @@
 <template>
-    <v-container
+    <v-container class="po-page" :class="{ 'is-mobile-view': isMobileView }"
         style="padding : 0 !important; height: 100%; display: flex; flex-direction: column; margin: 0; width: 100%; max-width: 100%;">
-        <v-template export-excel :show-expand="true" :single-expand="true" :hide-delete-button="hideDeleteButton"
+        <v-template class="po-template" export-excel :show-expand="true" :single-expand="true" :hide-delete-button="hideDeleteButton"
             :hide-add-button="hideAddButton" :items-options="itemsOptions" @open-edit="onOpenEdit"
             @open-add="onOpenEdit(true)" :disable-edit-button="disableEdit" :disable-delete-button="disableDelete"
             v-model="value" ref="template" :item-key="itemKey" :url="url" :headers="headers" :name="name"
             @update:selected-row="onSelectedRow" @update:selected-row-all="onSelectedRowAll" :table-only="tableOnly">
             <template v-slot:title-body v-if="$refs.template">
-                <b>Count Rows: </b>{{ $refs.template.itemsTotal }}
+                <b>Count Rowss: </b>{{ $refs.template.itemsTotal }}
             </template>
             <template v-slot:menu-after-filter>
                 <!-- <v-btn color="primary" outlined small @click="dialogItem = true" :disabled="!selected">
@@ -271,6 +271,49 @@
                         }"></purchase-item-group>
                 </td>
             </template>
+            <template v-slot:append-body="slotProps">
+                <div v-if="isMobileView" class="po-mobile-cards">
+                    <div v-if="!slotProps.items || slotProps.items.length === 0" class="po-mobile-empty">
+                        No data available
+                    </div>
+                    <v-card v-for="item in slotProps.items" :key="'mobile-po-' + item.id" outlined class="po-mobile-card"
+                        :class="{ 'po-mobile-card--selected': isSelectedRow(item) }" @click="selectMobileRow(item)">
+                        <div class="po-mobile-card__head">
+                            <div class="po-mobile-card__left">
+                                <div class="po-mobile-card__po">{{ item.po_no || '-' }}</div>
+                                <div class="po-mobile-card__title">{{ item.title || '-' }}</div>
+                            </div>
+                            <v-chip x-small label :color="statusChipColor(item.approved)" text-color="#1f1f1f">
+                                {{ approvedStatus(item.approved, item.new_po_no) }}
+                            </v-chip>
+                        </div>
+
+                        <div class="po-mobile-card__grid">
+                            <div><b>Supplier:</b> {{ item.supplier_name || '-' }}</div>
+                            <div><b>PO Date:</b> {{ item.po_date || '-' }}</div>
+                            <div><b>Promised:</b> {{ item.promised_delivery_date || '-' }}</div>
+                            <div><b>Grand Total:</b> {{ item.currency || '-' }} {{ Number(item.grand_total || 0).format(2, 3) }}</div>
+                            <div><b>Total Item:</b> {{ item.currency || '-' }} {{ Number(item.grand_total_price || 0).format(2, 3) }}</div>
+                            <div><b>Department:</b> {{ item.dept_name || '-' }}</div>
+                            <div><b>Created By:</b> {{ item.created_by_name || '-' }}</div>
+                            <div><b>Created Date:</b> {{ modifDate(item.created_date, item) }}</div>
+                        </div>
+
+                        <div class="po-mobile-card__actions">
+                            <v-btn small color="primary" outlined @click.stop="openItemsByRow(item)">
+                                <v-icon small left>mdi-format-list-bulleted</v-icon>Items
+                            </v-btn>
+                            <v-btn small color="primary" outlined @click.stop="openNotesByRow(item)">
+                                <v-icon small left>mdi-note-text</v-icon>Notes
+                            </v-btn>
+                            <v-btn small color="primary" outlined v-if="!hideApproval" :disabled="isAskApprovalDisabled(item)"
+                                @click.stop="askApprovalByRow(item)">
+                                {{ txtApproval }}
+                            </v-btn>
+                        </div>
+                    </v-card>
+                </div>
+            </template>
         </v-template>
         <!-- <v-action-dialog :actions="false" v-model="dialogItem" title="Purchase Order Item" min-height="75%" fullscreen>
             <purchase-item :key="selected.id" :sel="processData" name="" :data="dataid"></purchase-item>
@@ -488,6 +531,57 @@
 .v-data-table__wrapper>table>tbody>tr>td {
     font-size: .775rem;
 }
+
+.po-mobile-cards {
+    padding: 10px;
+}
+
+.po-mobile-empty {
+    padding: 14px;
+    text-align: center;
+    color: #666;
+}
+
+.po-mobile-card {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.po-mobile-card--selected {
+    border-color: #1976d2 !important;
+    box-shadow: 0 0 0 1px #1976d2 inset;
+}
+
+.po-mobile-card__head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.po-mobile-card__po {
+    font-weight: 700;
+}
+
+.po-mobile-card__title {
+    font-size: 0.82rem;
+    color: #333;
+}
+
+.po-mobile-card__grid {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    font-size: 0.82rem;
+}
+
+.po-mobile-card__actions {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 </style>
 
 <style>
@@ -504,6 +598,24 @@
     white-space: normal !important;
     word-break: break-word;
     line-height: 1.35 !important;
+}
+
+.po-page.is-mobile-view .po-template .table-container,
+.po-page.is-mobile-view .v-template .table-container,
+.po-page.is-mobile-view .po-template .template-table,
+.po-page.is-mobile-view .v-template .template-table {
+    display: none !important;
+}
+
+.po-page.is-mobile-view .po-template .v-data-footer,
+.po-page.is-mobile-view .v-template .v-data-footer {
+    display: none !important;
+}
+
+/* Hard hide desktop table internals on mobile mode */
+.po-page.is-mobile-view .v-data-table,
+.po-page.is-mobile-view .v-data-table__wrapper {
+    display: none !important;
 }
 </style>
 
@@ -1301,6 +1413,19 @@ module.exports = {
                 "data_value": ["IDR", "CNY", "EUR", "USD","BDT","SGD"],
                 "input": function (data) {
                     var self = App.page()
+                    var parseRate = function (rawValue) {
+                        var raw = String(rawValue || '')
+                        var numericPart = raw.replace(/[^\d.,-]/g, '')
+                        if (!numericPart)
+                            return 0
+
+                        // If both separators exist (e.g. 16.382,15), normalize ID format.
+                        if (numericPart.indexOf(',') !== -1 && numericPart.indexOf('.') !== -1) {
+                            numericPart = numericPart.replace(/\./g, '').replace(',', '.')
+                        }
+                        var parsed = parseFloat(numericPart)
+                        return Number.isNaN(parsed) ? 0 : Math.round(parsed)
+                    }
                         self.headersObj.exchange_rate.required = false
                     if (data.data.trim().toLowerCase() != 'idr') {
                         self.headersObj.exchange_rate.required = true
@@ -1315,10 +1440,13 @@ module.exports = {
 
 
                     if (data.data.trim().toUpperCase() != 'IDR') {
+                        self.headersObj.exchange_rate.data = 'Loading..'
+                        self.headers = App.updateObject(self.headers)
                         var ex = data.data.trim().toUpperCase()
                         if(self.exchangeData[ex]){
-                            self.headersObj.exchange_rate.data = self.exchangeData[ex]
-                            self.headersObj.exchange_rate.update = self.exchangeData[ex]
+                            var safeRate = parseRate(self.exchangeData[ex])
+                            self.headersObj.exchange_rate.data = safeRate
+                            self.headersObj.exchange_rate.update = safeRate
                             self.headers = App.updateObject(self.headers)
                         }
                         else{
@@ -1329,10 +1457,12 @@ module.exports = {
                             })
                             .then(function (response) {
                                 var data = response.data
-                                self.headersObj.exchange_rate.data = data.match(/\d+(.\d+)/)[0]
+                                self.headersObj.exchange_rate.data = parseRate(data)
                                 self.headers = App.updateObject(self.headers)
                             })
                             .catch(function (error) {
+                                self.headersObj.exchange_rate.data = 0
+                                self.headers = App.updateObject(self.headers)
                             })
                         }
                     }
@@ -2271,8 +2401,55 @@ module.exports = {
                 return false
             return true
         },
+        isMobileView: function () {
+            return !!(this.$vuetify && this.$vuetify.breakpoint && this.$vuetify.breakpoint.smAndDown)
+        }
     },
     methods: {
+        isSelectedRow: function (item) {
+            return !!(this.selected && item && this.selected.id === item.id)
+        },
+        selectMobileRow: function (item) {
+            this.onSelectedRow(item)
+        },
+        openItemsByRow: function (item) {
+            this.onSelectedRow(item)
+            this.dialogItemGroup = true
+        },
+        openNotesByRow: function (item) {
+            this.onSelectedRow(item)
+            this.dialogNotes = true
+        },
+        askApprovalByRow: function (item) {
+            this.onSelectedRow(item)
+            this.action = 'askApproval'
+            this.dialogAskApprovalNote = true
+        },
+        statusChipColor: function (approved) {
+            if (approved == 0) return '#f5e699'
+            if (approved == 4) return '#f88686'
+            if (approved == 1 || approved == 2 || approved == -2 || approved == -3) return '#ffcc99'
+            return '#e0e0e0'
+        },
+        isAskApprovalDisabled: function (item) {
+            if (!item) return true
+            if ((item.item_count || 0) < 1) return true
+            if (item.approved < 0) return true
+            if (item.approved == 0 || item.approved == -1) return false
+            return true
+        },
+        parseExchangeRate: function (rawValue) {
+            var raw = String(rawValue || '')
+            var numericPart = raw.replace(/[^\d.,-]/g, '')
+            if (!numericPart)
+                return 0
+
+            // BI format can be "16.382,15". Normalize to "16382.15".
+            var normalized = numericPart.replace(/\./g, '').replace(',', '.')
+            var parsed = parseFloat(normalized)
+            // Keep as integer to avoid locale decimal separator issues in float input.
+            return Number.isNaN(parsed) ? 0 : Math.round(parsed)
+        },
         loadTitleOptions: async function () {
             var self = this
             try {
@@ -2600,9 +2777,9 @@ module.exports = {
                 if (new_po_no.trim() != '')
                     return 'Revised Final PO'
             }
-            // if(f == 0){
-            // 	return 'New'
-            // }
+            if (f == 0) {
+                return 'New'
+            }
             if (f == 1) {
                 return 'Asking for Approval 1'
             }
@@ -3051,7 +3228,7 @@ module.exports = {
         })
         .then(function (response) {
             var data = response.data
-            self.exchangeData['CNY'] = data.match(/\d+(.\d+)/)[0]
+            self.exchangeData['CNY'] = self.parseExchangeRate(data)
         })
         .catch(function (error) {
         })
@@ -3063,7 +3240,7 @@ module.exports = {
         })
         .then(function (response) {
             var data = response.data
-            self.exchangeData['EUR'] = data.match(/\d+(.\d+)/)[0]
+            self.exchangeData['EUR'] = self.parseExchangeRate(data)
         })
         .catch(function (error) {
         })
@@ -3075,7 +3252,7 @@ module.exports = {
         })
         .then(function (response) {
             var data = response.data
-            self.exchangeData['USD'] = data.match(/\d+(.\d+)/)[0]
+            self.exchangeData['USD'] = self.parseExchangeRate(data)
         })
         .catch(function (error) {
         })

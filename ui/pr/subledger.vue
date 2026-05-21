@@ -1314,7 +1314,12 @@ module.exports = {
       }
       var qty = self.toNumber(self.headersObj.qty?.data);
       var unitPrice = self.toNumber(self.headersObj.unit_price?.data);
-      var totalNeed = qty * unitPrice;
+      var currency = String(self.headersObj.currency?.data || "IDR")
+        .trim()
+        .toUpperCase();
+      var exchangeRate = self.toNumber(self.headersObj.exchange_rate?.data);
+      var effectiveRate = currency === "IDR" ? 1 : exchangeRate;
+      var totalNeed = qty * unitPrice * effectiveRate;
       return self.remainingBudgetValue < totalNeed;
     },
     fetchAndSetRemainingBudget: function (projectId, budgetId) {

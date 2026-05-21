@@ -1,5 +1,7 @@
 <template>
   <v-container
+    class="po-dashboard-page"
+    :class="{ 'is-mobile-view': isMobileView }"
     v-observe-visibility="onVisible"
     style="
       padding: 0 !important;
@@ -12,6 +14,7 @@
     "
   >
     <v-template
+      class="po-dashboard-template"
       custom-sort
       :show-expand="true"
       :single-expand="true"
@@ -453,6 +456,68 @@
         ><br /><br />
         <b>Approval 2 Note:</b><br /><br />
       </template>
+      <template v-slot:append-body="slotProps">
+        <div v-if="isMobileView" class="po-mobile-cards">
+          <div v-if="!slotProps.items || slotProps.items.length === 0" class="po-mobile-empty">
+            No data available
+          </div>
+          <v-card
+            v-for="item in slotProps.items"
+            :key="'mobile-dashboard-po-' + item.id"
+            outlined
+            class="po-mobile-card"
+            :class="{ 'po-mobile-card--selected': isSelectedRow(item) }"
+            @click="selectMobileRow(item)"
+          >
+            <div class="po-mobile-card__head">
+              <div>
+                <div class="po-mobile-card__po">{{ item.po_no || "-" }}</div>
+                <div class="po-mobile-card__title">{{ item.title || "-" }}</div>
+              </div>
+              <v-chip x-small label :color="statusChipColor(item.approved)" text-color="#1f1f1f">
+                {{ approvedStatus(item.approved) }}
+              </v-chip>
+            </div>
+
+            <div class="po-mobile-card__grid">
+              <div><b>Supplier:</b> {{ item.supplier_name || "-" }}</div>
+              <div><b>PO Date:</b> {{ item.po_date || "-" }}</div>
+              <div><b>Promised:</b> {{ item.promised_delivery_date || "-" }}</div>
+              <div><b>Grand Total:</b> {{ item.currency || "-" }} {{ Number(item.grand_total || 0).format(2, 3) }}</div>
+              <div><b>Total Item:</b> {{ item.currency || "-" }} {{ Number(item.grand_total_price || 0).format(2, 3) }}</div>
+              <div><b>Department:</b> {{ item.dept_name || "-" }}</div>
+              <div><b>Created By:</b> {{ item.created_by_name || "-" }}</div>
+              <div><b>Created Date:</b> {{ modifDate(item.created_date, item) }}</div>
+            </div>
+
+            <div class="po-mobile-card__actions">
+              <v-btn small color="primary" outlined @click.stop="openItemsByRow(item)">
+                <v-icon small left>mdi-format-list-bulleted</v-icon>Items
+              </v-btn>
+              <v-btn small color="primary" outlined @click.stop="openNotesByRow(item)">
+                <v-icon small left>mdi-note-text</v-icon>Notes
+              </v-btn>
+              <template v-if="!nointeraction">
+                <v-btn small color="success" outlined @click.stop="openApproveByRow(item)">
+                  Approve
+                </v-btn>
+                <v-btn small color="warning" outlined @click.stop="openCommentByRow(item)">
+                  Revise
+                </v-btn>
+                <v-btn
+                  small
+                  color="red"
+                  outlined
+                  @click.stop="openRejectByRow(item)"
+                  :disabled="Number(item.approved) === -2 || Number(item.approved) === -3"
+                >
+                  Reject
+                </v-btn>
+              </template>
+            </div>
+          </v-card>
+        </div>
+      </template>
     </v-template>
     <v-action-dialog
       :actions="false"
@@ -773,6 +838,85 @@
 <style scoped>
 .v-data-table__wrapper > table > tbody > tr > td {
   font-size: 0.775rem;
+}
+
+.po-mobile-cards {
+  flex: 1;
+  min-height: 0;
+  padding: 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.po-mobile-empty {
+  padding: 14px;
+  text-align: center;
+  color: #666;
+}
+
+.po-mobile-card {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.po-mobile-card--selected {
+  border-color: #1976d2 !important;
+  box-shadow: 0 0 0 1px #1976d2 inset;
+}
+
+.po-mobile-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.po-mobile-card__po {
+  font-weight: 700;
+}
+
+.po-mobile-card__title {
+  font-size: 0.82rem;
+  color: #333;
+}
+
+.po-mobile-card__grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.po-mobile-card__actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>
+
+<style>
+.po-dashboard-page.is-mobile-view .po-dashboard-template .table-container,
+.po-dashboard-page.is-mobile-view .po-dashboard-template .template-table,
+.po-dashboard-page.is-mobile-view .po-dashboard-template .v-data-footer,
+.po-dashboard-page.is-mobile-view .po-dashboard-template .v-data-table,
+.po-dashboard-page.is-mobile-view .po-dashboard-template .v-data-table__wrapper {
+  display: none !important;
+}
+
+.po-dashboard-page.is-mobile-view {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.po-dashboard-page.is-mobile-view .po-dashboard-template {
+  min-height: 0;
+  height: auto !important;
+}
+
+.po-dashboard-page.is-mobile-view .po-dashboard-template .v-card {
+  min-height: 0;
 }
 </style>
 
@@ -1984,6 +2128,13 @@ module.exports = {
       if (self.selected.approved == 5) return true;
       false;
     },
+    isMobileView: function () {
+      return !!(
+        this.$vuetify &&
+        this.$vuetify.breakpoint &&
+        this.$vuetify.breakpoint.smAndDown
+      );
+    },
   },
   watch: {
     dialogComment: function () {
@@ -1991,6 +2142,39 @@ module.exports = {
     },
   },
   methods: {
+    isSelectedRow: function (item) {
+      return !!(this.selected && item && this.selected.id === item.id);
+    },
+    selectMobileRow: function (item) {
+      this.onSelectedRow(item);
+    },
+    openItemsByRow: function (item) {
+      this.onSelectedRow(item);
+      this.dialogItemGroup = true;
+    },
+    openNotesByRow: function (item) {
+      this.onSelectedRow(item);
+      this.dialogNotes = true;
+    },
+    openApproveByRow: function (item) {
+      this.onSelectedRow(item);
+      this.openApprove();
+    },
+    openCommentByRow: function (item) {
+      this.onSelectedRow(item);
+      this.openComment();
+    },
+    openRejectByRow: function (item) {
+      this.onSelectedRow(item);
+      this.openReject();
+    },
+    statusChipColor: function (approved) {
+      if (approved == 0) return "#f5e699";
+      if (approved == 4) return "#f88686";
+      if (approved == 1 || approved == 2 || approved == -2 || approved == -3)
+        return "#ffcc99";
+      return "#e0e0e0";
+    },
     convertLinks: function (text) {
       if (!text) return "";
 
