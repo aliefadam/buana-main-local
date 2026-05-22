@@ -438,7 +438,12 @@ module.exports = {
           form: true,
           filter: true,
           groupable: false,
-          data_value: ["Project", "Operational"],
+          data_value: [
+            "Project",
+            "Operational",
+            // "Asset",
+            // "Persediaan",
+          ],
           input: function (val) {
             var self = App.$get("subledger");
             if (val.data) {
@@ -455,22 +460,14 @@ module.exports = {
                 self.headersObj.type_operational_id.form = false;
                 self.headersObj.sub_type_operational_id.form = false;
                 self.headersObj.rnd_id.form = false;
-                self.headersObj.text_sisa_budget.form = false;
-                self.headersObj.text_sisa_budget.data = null;
-                self.headersObj.force_budget_minus_reason.form = false;
-                self.headersObj.force_budget_minus_reason.required = false;
-                self.headersObj.force_budget_minus_reason.data = null;
+                self.fetchAndSetAssetOrPersediaanRemainingBudget("Persediaan");
               } else if (val.data == "Asset") {
                 self.headersObj.project_id.form = false;
                 self.headersObj.budget_id.form = false;
                 self.headersObj.type_operational_id.form = false;
                 self.headersObj.sub_type_operational_id.form = false;
                 self.headersObj.rnd_id.form = false;
-                self.headersObj.text_sisa_budget.form = false;
-                self.headersObj.text_sisa_budget.data = null;
-                self.headersObj.force_budget_minus_reason.form = false;
-                self.headersObj.force_budget_minus_reason.required = false;
-                self.headersObj.force_budget_minus_reason.data = null;
+                self.fetchAndSetAssetOrPersediaanRemainingBudget("Asset");
               } else if (val.data == "R&D") {
                 self.headersObj.project_id.form = false;
                 self.headersObj.budget_id.form = false;
@@ -1266,11 +1263,12 @@ module.exports = {
       }
       self.headers = App.updateObject(self.headers);
     },
-    applyRemainingBudgetState: function (remaining) {
+    applyRemainingBudgetState: function (remaining, options) {
       var self = this;
       var isOperational =
         self.headersObj.project_type &&
         self.headersObj.project_type.data === "Operational";
+      var skipMinusValidation = !!options?.skipMinusValidation;
       var formattedRemaining = new Intl.NumberFormat("id-ID", {
         style: "currency",
         currency: "IDR",
@@ -1282,6 +1280,13 @@ module.exports = {
       self.headersObj.text_sisa_budget.form = true;
       self.headersObj.text_sisa_budget.data =
         "Remaining Budget : " + formattedRemaining;
+      if (skipMinusValidation) {
+        self.headersObj.force_budget_minus_reason.form = false;
+        self.headersObj.force_budget_minus_reason.required = false;
+        self.headersObj.force_budget_minus_reason.data = null;
+        self.headers = App.updateObject(self.headers);
+        return;
+      }
       self.headersObj.force_budget_minus_reason.form =
         remaining < 0 && !isOperational;
       self.headersObj.force_budget_minus_reason.required =
@@ -1381,6 +1386,52 @@ module.exports = {
               throw new Error("Data kosong");
             }
             self.applyRemainingBudgetState(remaining);
+          } catch (error) {
+            self.setRemainingBudgetMessage(
+              "Error : Failed to load remaining budget",
+              true,
+            );
+          }
+        })
+        .catch(function () {
+          self.setRemainingBudgetMessage(
+            "Error : Failed to load remaining budget",
+            true,
+          );
+        });
+    },
+    fetchAndSetAssetOrPersediaanRemainingBudget: function (projectType) {
+      var self = this;
+      self.remainingBudgetValue = null;
+      self.headersObj.text_sisa_budget.form = true;
+      self.headersObj.text_sisa_budget.data = "Calculate Remaining Budget...";
+      self.headersObj.force_budget_minus_reason.form = false;
+      self.headersObj.force_budget_minus_reason.required = false;
+      self.headersObj.force_budget_minus_reason.data = null;
+      self.headers = App.updateObject(self.headers);
+
+      var endpoint =
+        projectType === "Asset"
+          ? "https://panel.buanamultiteknik.com/api/budget/asset/summary"
+          : "https://panel.buanamultiteknik.com/api/budget/persediaan/summary";
+
+      axios
+        .get(endpoint)
+        .then(function (response) {
+          try {
+            var remaining =
+              response?.data?.budget?.remaining ??
+              response?.data?.remaining ??
+              response?.data?.data?.remaining ??
+              response?.data?.summary?.remaining;
+
+            if (remaining === undefined || remaining === null) {
+              throw new Error("Data kosong");
+            }
+
+            self.applyRemainingBudgetState(remaining, {
+              skipMinusValidation: true,
+            });
           } catch (error) {
             self.setRemainingBudgetMessage(
               "Error : Failed to load remaining budget",
@@ -1546,7 +1597,7 @@ module.exports = {
           val.project_type == "Persediaan" ||
           val.project_type == "Asset"
         ) {
-          // Semua field kondisional sudah di-reset di atas, tidak perlu tambahan
+          self.fetchAndSetAssetOrPersediaanRemainingBudget(val.project_type);
         }
 
         self.headers = App.updateObject(self.headers);
