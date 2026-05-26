@@ -265,10 +265,10 @@
         <v-btn
           small
           color="success"
-          :dark="!disableAskApproval"
-          :outlined="disableAskApproval"
+          :dark="!disableApproved"
+          :outlined="disableApproved"
           v-if="!tableOnly && !history"
-          :disabled="disableAskApproval"
+          :disabled="disableApproved"
           @click="
             action = 'approved';
             dialogNote = true;
@@ -387,10 +387,10 @@
             dense
             color="#ffcc99"
             v-if="
-              props.item.status == 1 ||
-              props.item.status == 2 ||
-              props.item.status == -2 ||
-              props.item.status == -3
+              Number(props.item.status) === 1 ||
+              Number(props.item.status) === 2 ||
+              Number(props.item.status) === -2 ||
+              Number(props.item.status) === -3
             "
             style="
               margin: 0 !important;
@@ -406,7 +406,7 @@
           <v-alert
             dense
             color="#f5e699"
-            v-if="props.item.status == 0"
+            v-if="Number(props.item.status) === 0"
             style="
               margin: 0 !important;
               padding: 4px 8px;
@@ -421,7 +421,7 @@
           <v-alert
             dense
             color="#bfdda8"
-            v-if="props.item.status == 3"
+            v-if="Number(props.item.status) === 3"
             style="
               margin: 0 !important;
               padding: 4px 8px;
@@ -436,7 +436,7 @@
           <v-alert
             dense
             color="#22faff"
-            v-if="props.item.status == -4"
+            v-if="Number(props.item.status) === -4"
             style="
               margin: 0 !important;
               padding: 4px 8px;
@@ -451,7 +451,7 @@
           <v-alert
             dense
             color="#ff3e15"
-            v-if="props.item.status == -1"
+            v-if="Number(props.item.status) === -1"
             style="
               margin: 0 !important;
               padding: 4px 8px;
@@ -1828,21 +1828,32 @@ module.exports = {
     },
     disableAskApproval: function () {
       var self = this;
+      var status = Number(self.selected && self.selected.status);
       if (!this.selected) return true;
-      if (self.selected.status > 0 || self.selected.status < 0) return true;
+      if (status > 0 || status < 0) return true;
       return false;
+    },
+    disableApproved: function () {
+      var self = this;
+      if (!this.selected) return true;
+      // status from API can be string, normalize first
+      var status = Number(self.selected.status);
+      // Allow manual approved only for Pending 1
+      return status !== 1;
     },
     disableAskCancel: function () {
       var self = this;
+      var status = Number(self.selected && self.selected.status);
       if (!this.selected) return true;
-      if (self.selected.status == 3) return false;
+      if (status === 3) return false;
       return true;
     },
     disableOpen: function () {
       var self = this;
+      var status = Number(self.selected && self.selected.status);
 
       if (!self.selected) return true;
-      if (self.selected.status > 0 || self.selected.status < 0) return true;
+      if (status > 0 || status < 0) return true;
       return false;
     },
     headersObj: function () {
@@ -1865,15 +1876,16 @@ module.exports = {
   },
   methods: {
     status: function (item) {
-      if (item.status == 0 && item.flag == 0) return "Deleted";
-      if (item.status == 0 && item.flag != 0) return "New";
-      if (item.status == 1) return "Asking for Approval 1";
-      if (item.status == 2) return "Asking for Approval 2";
-      if (item.status == 3) return "Final Approved";
-      if (item.status == -1) return "Rejected";
-      if (item.status == -2) return "Asking for Cancel 1";
-      if (item.status == -3) return "Asking for Cancel 2";
-      if ((item.status = -4)) return "Canceled";
+      var status = Number(item.status);
+      if (status === 0 && item.flag == 0) return "Deleted";
+      if (status === 0 && item.flag != 0) return "New";
+      if (status === 1) return "Asking for Approval 1";
+      if (status === 2) return "Asking for Approval 2";
+      if (status === 3) return "Final Approved";
+      if (status === -1) return "Rejected";
+      if (status === -2) return "Asking for Cancel 1";
+      if (status === -3) return "Asking for Cancel 2";
+      if (status === -4) return "Canceled";
       if (item.rev_date != null) return "New";
     },
     saveFile: async function () {
