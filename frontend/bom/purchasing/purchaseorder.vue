@@ -49,6 +49,10 @@
                     <v-icon small left>mdi-printer</v-icon><template v-if="!hideAddButton">Preview</template><template
                         v-else>Print</template>
                 </v-btn>
+                <v-btn color="primary" outlined small @click="openRemainingBudgetDialog(selected)"
+                    :disabled="selected == false">
+                    Show Remaining Budget
+                </v-btn>
                 <v-btn color="primary" outlined small @click="openReportNoPrice" :disabled="allowPrint"
                     v-if="hideAddButton">
                     <v-icon small left>mdi-printer</v-icon>Print Without price
@@ -335,6 +339,73 @@
         </v-action-dialog>
         <v-action-dialog :actions="false" v-model="dialogNotes" title="PO Comment" min-height="75%" fullscreen>
             <po-comment :key="selected.id" :data="dataid" :table-only="tableOnly"></po-comment>
+        </v-action-dialog>
+        <v-action-dialog :actions="false" v-model="dialogRemainingBudget" title="Remaining Budget" min-height="75%"
+            fullscreen>
+            <div style="padding: 12px">
+                <table class="default-table with-border" style="width: 100%">
+                    <thead>
+                        <tr>
+                            <th style="padding: 5px; width: 150px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Charged To</th>
+                            <th style="padding: 5px; width: 150px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Item No</th>
+                            <th style="padding: 5px; width: 150px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Part</th>
+                            <th style="padding: 5px; width: 150px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Subledger</th>
+                            <th style="padding: 5px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">QTY</th>
+                            <th style="padding: 5px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Price</th>
+                            <th style="padding: 5px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">SubTotal</th>
+                            <th style="padding: 5px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Currency</th>
+                            <th style="padding: 5px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Grand Total</th>
+                            <th style="padding: 5px" v-if="showOperationalRemainingBreakdown" colspan="2">Remaining Budget</th>
+                            <th style="padding: 5px" v-else :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Remaining Budget</th>
+                            <th style="padding: 5px" :rowspan="showOperationalRemainingBreakdown ? 2 : 1">Force Reason Input Minus Budget</th>
+                        </tr>
+                        <tr v-if="showOperationalRemainingBreakdown">
+                            <th style="padding: 5px">Sub Operational</th>
+                            <th style="padding: 5px">Department</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="remainingBudgetLoading">
+                            <td :colspan="showOperationalRemainingBreakdown ? 12 : 11" style="text-align: center; padding: 5px">
+                                <v-progress-circular indeterminate size="18" width="2" style="margin-right: 8px"></v-progress-circular>
+                                Loading...
+                            </td>
+                        </tr>
+                        <tr v-else-if="remainingBudgetItems.length === 0">
+                            <td style="padding: 5px" :colspan="showOperationalRemainingBreakdown ? 12 : 11">No data</td>
+                        </tr>
+                        <tr v-else v-for="(item, index) in remainingBudgetItems" :key="index">
+                            <td style="padding: 5px" v-if="item.show_project_budget" :rowspan="item.project_budget_rowspan">{{ item.project_budget_label || "-" }}</td>
+                            <td style="padding: 5px">{{ item.item_no }}</td>
+                            <td style="padding: 5px">{{ item.part_name || "-" }}</td>
+                            <td style="padding: 5px">{{ item.subledger_name || "-" }}</td>
+                            <td style="padding: 5px">{{ Number(item.qty || 0).format(2, 3) }}</td>
+                            <td style="padding: 5px">{{ Number(item.price || 0).format(2, 3) }}</td>
+                            <td style="padding: 5px">{{ Number(item.subtotal || 0).format(2, 3) }}</td>
+                            <td style="padding: 5px">{{ item.currency || "-" }}</td>
+                            <td style="padding: 5px">{{ "Rp. " + Number(item.grand_total_idr || 0).format(2, 3) }}</td>
+                            <td style="padding: 5px" v-if="item.show_remaining" :rowspan="item.remaining_rowspan"
+                                :colspan="showOperationalRemainingBreakdown && !item.is_operational ? 2 : 1">
+                                <div v-if="remainingBudgetCalcLoading">Calculate Remaining Budget...</div>
+                                <div v-else :style="{ color: Number(item.remaining_budget) < 0 ? '#ff5252' : '#000' }">
+                                    {{ item.remaining_budget !== undefined ? "Rp. " + Number(item.remaining_budget).format(2, 3) : "-" }}
+                                </div>
+                            </td>
+                            <td style="padding: 5px"
+                                v-if="showOperationalRemainingBreakdown && item.is_operational && item.show_remaining"
+                                :rowspan="item.remaining_rowspan">
+                                <div v-if="remainingBudgetCalcLoading">Calculate Remaining Budget...</div>
+                                <div v-if="!remainingBudgetCalcLoading && item.remaining_bugdet_total_department !== undefined && item.remaining_bugdet_total_department !== null"
+                                    :style="{ color: Number(item.remaining_bugdet_total_department) < 0 ? '#ff5252' : '#000' }">
+                                    {{ "Rp. " + Number(item.remaining_bugdet_total_department).format(2, 3) }}
+                                </div>
+                                <div v-else-if="!remainingBudgetCalcLoading">-</div>
+                            </td>
+                            <td style="padding: 5px">{{ item.force_budget_minus_reason || "-" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </v-action-dialog>
 
         <v-action-dialog @save=saveFile title="Sent Info" v-model="dialogFile">
@@ -2009,6 +2080,12 @@ module.exports = {
             dialogItem: false,
             dialogItemGroup: false,
             dialogReport: false,
+            dialogRemainingBudget: false,
+            remainingBudgetItems: [],
+            remainingBudgetLoading: false,
+            remainingBudgetCalcLoading: false,
+            showOperationalRemainingBreakdown: false,
+            remainingBudgetPoId: null,
             selected: false,
             dialogComplete: false,
             dataid: {},
@@ -2446,7 +2523,7 @@ module.exports = {
             var name = self.selected.po_no.replace(/\//g, '_').replace(/\-/g, '_')
             var randomid = randomId()
             // window.open('https://decafet.com/api/report?type=pdf&file=po&filename=' + name + '&engine=easytemplate&po_id=' + self.selected.id)
-            window.open('https://internal.buanamultiteknik.com/api/data/reportpo?id=' + self.selected.id + '&filename=' + name + '&idx=' + randomid)
+            window.open('https://main.buanamultiteknik.com/api/data/reportpo?id=' + self.selected.id + '&filename=' + name + '&idx=' + randomid)
 
         },
 
@@ -2455,7 +2532,7 @@ module.exports = {
             var self = this
             var name = self.selected.po_no.replace(/\//g, '_').replace(/\-/g, '_')
             var randomid = randomId()
-            window.open('https://internal.buanamultiteknik.com/api/data/reportpo2?id=' + self.selected.id + '&filename=' + name + '&idx=' + randomid)
+            window.open('https://main.buanamultiteknik.com/api/data/reportpo2?id=' + self.selected.id + '&filename=' + name + '&idx=' + randomid)
 
 
             // window.open('https://decafet.com/api/report?type=pdf&file=po2&filename='+name+'&engine=easytemplate&po_id='+self.selected.id)
@@ -2466,7 +2543,234 @@ module.exports = {
             var self = this
             var name = self.selected.po_no.replace(/\//g, '_').replace(/\-/g, '_')
             var randomid = randomId()
-            window.open('https://internal.buanamultiteknik.com/api/data/reportponoprice?id=' + self.selected.id + '&filename=' + name + '&idx=' + randomid)
+            window.open('https://main.buanamultiteknik.com/api/data/reportponoprice?id=' + self.selected.id + '&filename=' + name + '&idx=' + randomid)
+        },
+        fetchRemainingBudgetItems: async function (poId) {
+            var self = this
+            self.remainingBudgetLoading = true
+            self.remainingBudgetCalcLoading = false
+            try {
+                var r = await axios.get(App.url + 'bom/purchase_order_item_group/subledger', {
+                    params: {
+                        purchase_order_id: poId
+                    }
+                })
+                if (!r.data.status) {
+                    App.errorMsg(r.data)
+                    self.remainingBudgetItems = []
+                    self.remainingBudgetLoading = false
+                    return
+                }
+                var items = r.data.data || []
+                var groupMap = {}
+                var totalSubtotal = 0
+                var charge1Total = 0
+                var charge2Total = 0
+                var discountTotal = 0
+                items.map((item) => {
+                    var qty = Number(item.qty || 0)
+                    var price = Number(item.price || 0)
+                    var subtotal = qty * price
+                    item.subtotal = subtotal
+                    totalSubtotal += subtotal
+                    var key = (item.project_id || '') + '|' + (item.project_budget_id || '')
+                    if (!groupMap[key]) groupMap[key] = { total: 0, count: 0 }
+                    groupMap[key].total += subtotal
+                    groupMap[key].count += 1
+                })
+                if (items.length > 0) {
+                    charge1Total = Number(items[0].charge1 || 0)
+                    charge2Total = Number(items[0].charge2 || 0)
+                    discountTotal = Number(items[0].discount || 0)
+                }
+                var seen = {}
+                self.remainingBudgetItems = items.map((item) => {
+                    var key = (item.project_id || '') + '|' + (item.project_budget_id || '')
+                    var showGroup = !seen[key]
+                    if (showGroup) seen[key] = true
+                    var projectLabel = ''
+                    if (item.project_no) projectLabel += item.project_no
+                    if (item.project_name) projectLabel += (projectLabel ? ' - ' : '') + item.project_name
+                    if (!projectLabel) projectLabel = '-'
+                    if (item.budget_name) projectLabel += ' (' + item.budget_name + ')'
+                    var subtotal = Number(item.subtotal || 0)
+                    var pct = totalSubtotal > 0 ? subtotal / totalSubtotal : 0
+                    var allocatedCharge1 = charge1Total * pct
+                    var allocatedCharge2 = charge2Total * pct
+                    var allocatedDiscount = discountTotal * pct
+                    var exchangeRate = Number(item.exchange_rate || 0)
+                    if (!exchangeRate || exchangeRate <= 0) exchangeRate = 1
+                    var subtotalIdr = subtotal * exchangeRate
+                    var grandTotalIdr = subtotalIdr + allocatedCharge1 + allocatedCharge2 - allocatedDiscount
+                    return Object.assign({}, item, {
+                        project_budget_label: projectLabel,
+                        show_project_budget: showGroup,
+                        project_budget_rowspan: groupMap[key].count,
+                        show_remaining: showGroup,
+                        remaining_rowspan: groupMap[key].count,
+                        charge1: allocatedCharge1,
+                        charge2: allocatedCharge2,
+                        discount: allocatedDiscount,
+                        grand_total_idr: grandTotalIdr
+                    })
+                })
+                if (self.remainingBudgetItems.length > 0) {
+                    await self.calculateRemainingBudget()
+                }
+            } catch (e) {
+                App.errorMsg(e)
+                self.remainingBudgetItems = []
+            }
+            self.remainingBudgetLoading = false
+        },
+        calculateRemainingBudget: async function () {
+            var self = this
+            if (self.remainingBudgetItems.length === 0) {
+                self.showOperationalRemainingBreakdown = false
+                return
+            }
+            var groupedIds = {}
+            self.remainingBudgetItems.map((item) => {
+                var price = Number(item.price || 0)
+                if (!groupedIds[price]) groupedIds[price] = []
+                groupedIds[price].push(item.subledger_id)
+            })
+            var subledgerIds = self.remainingBudgetItems
+                .map((item) => item.subledger_id)
+                .filter((id) => id !== undefined && id !== null && id !== '')
+            var projectTypeMap = await self.getProjectTypeMap(subledgerIds)
+            var groupedProjectIds = {}
+            var groupedOperationalIds = {}
+            Object.keys(groupedIds).map((price) => {
+                groupedProjectIds[price] = []
+                groupedOperationalIds[price] = []
+                groupedIds[price].map((subledgerId) => {
+                    var projectType = projectTypeMap[subledgerId]
+                    if (String(projectType || '').toLowerCase() === 'operational') groupedOperationalIds[price].push(subledgerId)
+                    else groupedProjectIds[price].push(subledgerId)
+                })
+            })
+            self.remainingBudgetCalcLoading = true
+            try {
+                var remainingMap = {}
+                var remainingTotalDepartmentMap = {}
+                var warningMap = {}
+                var operationalLabelMap = {}
+                var requests = []
+                Object.keys(groupedProjectIds).map((price) => {
+                    if (groupedProjectIds[price].length === 0) return
+                    requests.push(
+                        axios.get('https://panel.buanamultiteknik.com/api/budget/project-budget/subledger', {
+                            params: { price: price, subledger_id: groupedProjectIds[price].join(',') }
+                        }).then((budgetRes) => {
+                            var budgetData = budgetRes && budgetRes.data && budgetRes.data.data && Array.isArray(budgetRes.data.data) ? budgetRes.data.data : []
+                            budgetData.map((d) => {
+                                remainingMap[d.subledger_id] = d.remaining
+                                remainingTotalDepartmentMap[d.subledger_id] = d.remaining_bugdet_total_department
+                                warningMap[d.subledger_id] = !!d.is_warning
+                            })
+                        })
+                    )
+                })
+                Object.keys(groupedOperationalIds).map((price) => {
+                    if (groupedOperationalIds[price].length === 0) return
+                    requests.push(
+                        axios.get('https://panel.buanamultiteknik.com/api/budget/operational-budget/subledger', {
+                            params: { price: price, subledger_id: groupedOperationalIds[price].join(',') }
+                        }).then((budgetRes) => {
+                            var budgetData = budgetRes && budgetRes.data && budgetRes.data.data && Array.isArray(budgetRes.data.data) ? budgetRes.data.data : []
+                            budgetData.map((d) => {
+                                remainingMap[d.subledger_id] = d.remaining
+                                remainingTotalDepartmentMap[d.subledger_id] = d.remaining_bugdet_total_department
+                                warningMap[d.subledger_id] = !!d.is_warning
+                                var department = d.department_name || '-'
+                                var typeOperational = d.type_operational_name || '-'
+                                var subTypeOperational = d.sub_type_operational_name || '-'
+                                operationalLabelMap[d.subledger_id] = department + ' -> ' + typeOperational + ' -> ' + subTypeOperational
+                            })
+                        })
+                    )
+                })
+                await Promise.all(requests)
+                self.remainingBudgetItems = self.remainingBudgetItems.map((item) => {
+                    var projectType = projectTypeMap[item.subledger_id]
+                    var label = operationalLabelMap[item.subledger_id]
+                    var isOperational = String(projectType || '').toLowerCase() === 'operational'
+                    var projectBudgetLabel = isOperational && label ? label : item.project_budget_label
+                    return Object.assign({}, item, {
+                        remaining_budget: remainingMap[item.subledger_id],
+                        remaining_bugdet_total_department: remainingTotalDepartmentMap[item.subledger_id],
+                        is_operational: isOperational,
+                        is_warning: warningMap[item.subledger_id] !== undefined ? warningMap[item.subledger_id] : item.is_warning,
+                        project_budget_label: projectBudgetLabel
+                    })
+                })
+                var opItems = self.remainingBudgetItems.slice()
+                var i = 0
+                while (i < opItems.length) {
+                    if (!opItems[i].is_operational) {
+                        i++
+                        continue
+                    }
+                    var label = opItems[i].project_budget_label
+                    var j = i + 1
+                    while (j < opItems.length && opItems[j].is_operational && opItems[j].project_budget_label === label) j++
+                    var count = j - i
+                    opItems[i] = Object.assign({}, opItems[i], {
+                        show_project_budget: true, project_budget_rowspan: count, show_remaining: true, remaining_rowspan: count
+                    })
+                    for (var k = i + 1; k < j; k++) {
+                        opItems[k] = Object.assign({}, opItems[k], {
+                            show_project_budget: false, project_budget_rowspan: 1, show_remaining: false, remaining_rowspan: 1
+                        })
+                    }
+                    i = j
+                }
+                self.remainingBudgetItems = opItems
+                self.showOperationalRemainingBreakdown = self.remainingBudgetItems.some((item) => !!item.is_operational)
+            } catch (e) {
+                console.log('Remaining budget API error:', e)
+                self.showOperationalRemainingBreakdown = false
+            }
+            self.remainingBudgetCalcLoading = false
+        },
+        getProjectTypeMap: async function (subledgerIds) {
+            if (!Array.isArray(subledgerIds) || subledgerIds.length === 0) return {}
+            try {
+                var r = await axios.get(App.url + 'bom/prsubledger', {
+                    params: {
+                        filter: { id: subledgerIds },
+                        filterType: { id: 'in' },
+                        limit: -1
+                    }
+                })
+                var rows = r && r.data && Array.isArray(r.data.data) ? r.data.data : []
+                var map = {}
+                rows.map((d) => {
+                    if (d && d.id !== undefined) map[d.id] = d.project_type
+                })
+                return map
+            } catch (e) {
+                console.log('Remaining budget project_type fetch error:', e)
+                return {}
+            }
+        },
+        openRemainingBudgetDialog: function (item) {
+            var self = this
+            if (!item) return
+            self.dialogRemainingBudget = true
+            self.remainingBudgetItems = []
+            self.showOperationalRemainingBreakdown = false
+            self.remainingBudgetPoId = item.id
+            axios
+                .get('https://panel.buanamultiteknik.com/api/transaction/purchase-order/get-remaining-budget/' + item.id)
+                .then((res) => {
+                    console.log('Remaining budget API result:', res.data)
+                })
+                .catch((err) => {
+                    console.error('Remaining budget API error:', err)
+                })
+            self.fetchRemainingBudgetItems(item.id)
         },
         remove(item) {
             this.ccSelected.splice(this.ccSelected.indexOf(item), 1)
