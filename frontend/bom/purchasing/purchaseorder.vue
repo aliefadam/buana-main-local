@@ -667,11 +667,9 @@ module.exports = {
                 "form": true,
                 "filter": true,
                 "groupable": false,
-                "url": App.url + "bom/purchaseorder/titleoptions",
-                "paging": true,
-                "page": "1",
-                "limit": "100",
-                "pk": "value",
+                "clearable": true,
+                "hint": "Type to search title",
+                "data_value": [],
             }, {
                 "text": "Status",
                 "value": "approved",
@@ -1424,6 +1422,42 @@ module.exports = {
                 "groupable": false
             },
             {
+                "text": "PPN (%)",
+                "value": "ppn",
+                "align": "start",
+                "sortable": true,
+                "filterable": false,
+                "divider": false,
+                "class": "",
+                "width": "auto",
+                "type": "float",
+                "disabled": false,
+                "visible": false,
+                "required": false,
+                "form": true,
+                "filter": false,
+                "precision": 2,
+                "groupable": false
+            },
+            {
+                "text": "PPH (%)",
+                "value": "pph",
+                "align": "start",
+                "sortable": true,
+                "filterable": false,
+                "divider": false,
+                "class": "",
+                "width": "auto",
+                "type": "float",
+                "disabled": false,
+                "visible": false,
+                "required": false,
+                "form": true,
+                "filter": false,
+                "precision": 2,
+                "groupable": false
+            },
+            {
                 "text": "Admin Charge",
                 "value": "admin_charge",
                 "align": "start",
@@ -2089,7 +2123,8 @@ module.exports = {
             selected: false,
             dialogComplete: false,
             dataid: {},
-            defaultForm: []
+            defaultForm: [],
+            titleOptionsCache: []
         }
     },
     watch: {
@@ -2191,6 +2226,32 @@ module.exports = {
         },
     },
     methods: {
+        applyTitleOptions: function () {
+            var self = this
+            var opts = Array.isArray(self.titleOptionsCache) ? self.titleOptionsCache : []
+            if (self.headersObj.title) {
+                self.headersObj.title.data_value = opts
+            }
+            if (Array.isArray(self.defaultForm)) {
+                self.defaultForm.map(function (item) {
+                    if (item.value === 'title') {
+                        item.data_value = JSONfn.parse(JSONfn.stringify(opts))
+                    }
+                })
+            }
+        },
+        loadTitleOptions: async function () {
+            var self = this
+            try {
+                var r = await axios.get(App.url + 'bom/purchaseorder/titleoptions')
+                if (r.data && r.data.status) {
+                    self.titleOptionsCache = Array.isArray(r.data.data) ? r.data.data : []
+                    self.applyTitleOptions()
+                }
+            } catch (err) {
+                console.log(err)
+            }
+        },
         async checkPaymentStatus() {
             try {
                 const response = await fetch(`api/bom/purchaseorder/getdataexistpaymentlist?id=${this.selected.id}`);
@@ -2358,6 +2419,7 @@ module.exports = {
             }
             else {
                 self.headers = JSONfn.parse(JSONfn.stringify(self.defaultForm))
+                self.applyTitleOptions()
             }
             if (add != true) {
                 self.headers.map(function (val) {
@@ -2876,6 +2938,7 @@ module.exports = {
 
 		}
         self.defaultForm = JSONfn.parse(JSONfn.stringify(self.headers))
+        self.loadTitleOptions()
         axios.get(App.url + 'bom/payment/exchange', {
             params: {
                 currency: 'CNY'

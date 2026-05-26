@@ -458,7 +458,10 @@
       </template>
       <template v-slot:append-body="slotProps">
         <div v-if="isMobileView" class="po-mobile-cards">
-          <div v-if="!slotProps.items || slotProps.items.length === 0" class="po-mobile-empty">
+          <div
+            v-if="!slotProps.items || slotProps.items.length === 0"
+            class="po-mobile-empty"
+          >
             No data available
           </div>
           <v-card
@@ -474,7 +477,12 @@
                 <div class="po-mobile-card__po">{{ item.po_no || "-" }}</div>
                 <div class="po-mobile-card__title">{{ item.title || "-" }}</div>
               </div>
-              <v-chip x-small label :color="statusChipColor(item.approved)" text-color="#1f1f1f">
+              <v-chip
+                x-small
+                label
+                :color="statusChipColor(item.approved)"
+                text-color="#1f1f1f"
+              >
                 {{ approvedStatus(item.approved) }}
               </v-chip>
             </div>
@@ -482,26 +490,56 @@
             <div class="po-mobile-card__grid">
               <div><b>Supplier:</b> {{ item.supplier_name || "-" }}</div>
               <div><b>PO Date:</b> {{ item.po_date || "-" }}</div>
-              <div><b>Promised:</b> {{ item.promised_delivery_date || "-" }}</div>
-              <div><b>Grand Total:</b> {{ item.currency || "-" }} {{ Number(item.grand_total || 0).format(2, 3) }}</div>
-              <div><b>Total Item:</b> {{ item.currency || "-" }} {{ Number(item.grand_total_price || 0).format(2, 3) }}</div>
+              <div>
+                <b>Promised:</b> {{ item.promised_delivery_date || "-" }}
+              </div>
+              <div>
+                <b>Grand Total:</b> {{ item.currency || "-" }}
+                {{ Number(item.grand_total || 0).format(2, 3) }}
+              </div>
+              <div>
+                <b>Total Item:</b> {{ item.currency || "-" }}
+                {{ Number(item.grand_total_price || 0).format(2, 3) }}
+              </div>
               <div><b>Department:</b> {{ item.dept_name || "-" }}</div>
               <div><b>Created By:</b> {{ item.created_by_name || "-" }}</div>
-              <div><b>Created Date:</b> {{ modifDate(item.created_date, item) }}</div>
+              <div>
+                <b>Created Date:</b> {{ modifDate(item.created_date, item) }}
+              </div>
             </div>
 
             <div class="po-mobile-card__actions">
-              <v-btn small color="primary" outlined @click.stop="openItemsByRow(item)">
+              <v-btn
+                small
+                color="primary"
+                outlined
+                @click.stop="openItemsByRow(item)"
+              >
                 <v-icon small left>mdi-format-list-bulleted</v-icon>Items
               </v-btn>
-              <v-btn small color="primary" outlined @click.stop="openNotesByRow(item)">
+              <v-btn
+                small
+                color="primary"
+                outlined
+                @click.stop="openNotesByRow(item)"
+              >
                 <v-icon small left>mdi-note-text</v-icon>Notes
               </v-btn>
               <template v-if="!nointeraction">
-                <v-btn small color="success" outlined @click.stop="openApproveByRow(item)">
+                <v-btn
+                  small
+                  color="success"
+                  outlined
+                  @click.stop="openApproveByRow(item)"
+                >
                   Approve
                 </v-btn>
-                <v-btn small color="warning" outlined @click.stop="openCommentByRow(item)">
+                <v-btn
+                  small
+                  color="warning"
+                  outlined
+                  @click.stop="openCommentByRow(item)"
+                >
                   Revise
                 </v-btn>
                 <v-btn
@@ -509,7 +547,9 @@
                   color="red"
                   outlined
                   @click.stop="openRejectByRow(item)"
-                  :disabled="Number(item.approved) === -2 || Number(item.approved) === -3"
+                  :disabled="
+                    Number(item.approved) === -2 || Number(item.approved) === -3
+                  "
                 >
                   Reject
                 </v-btn>
@@ -901,7 +941,9 @@
 .po-dashboard-page.is-mobile-view .po-dashboard-template .template-table,
 .po-dashboard-page.is-mobile-view .po-dashboard-template .v-data-footer,
 .po-dashboard-page.is-mobile-view .po-dashboard-template .v-data-table,
-.po-dashboard-page.is-mobile-view .po-dashboard-template .v-data-table__wrapper {
+.po-dashboard-page.is-mobile-view
+  .po-dashboard-template
+  .v-data-table__wrapper {
   display: none !important;
 }
 
@@ -2706,10 +2748,18 @@ module.exports = {
         var opItems = self.remainingBudgetItems.slice();
         var i = 0;
         while (i < opItems.length) {
-          if (!opItems[i].is_operational) { i++; continue; }
+          if (!opItems[i].is_operational) {
+            i++;
+            continue;
+          }
           var label = opItems[i].project_budget_label;
           var j = i + 1;
-          while (j < opItems.length && opItems[j].is_operational && opItems[j].project_budget_label === label) j++;
+          while (
+            j < opItems.length &&
+            opItems[j].is_operational &&
+            opItems[j].project_budget_label === label
+          )
+            j++;
           var count = j - i;
           opItems[i] = Object.assign({}, opItems[i], {
             show_project_budget: true,
