@@ -31,7 +31,9 @@
       :table-only="tableOnly"
     >
       <template v-slot:title-body v-if="$refs.template">
-        <b>Count Rows: </b>{{ $refs.template.itemsTotal }}
+        <div class="po-mobile-sticky-head">
+          <b>Count Rows: </b>{{ $refs.template.itemsTotal }}
+        </div>
       </template>
       <template v-slot:menu-after-filter>
         <v-btn
@@ -492,6 +494,71 @@
               <div><b>PO Date:</b> {{ item.po_date || "-" }}</div>
               <div>
                 <b>Promised:</b> {{ item.promised_delivery_date || "-" }}
+              </div>
+              <div><b>Currency:</b> {{ item.currency || "-" }}</div>
+              <div>
+                <b>Exchange Rate:</b>
+                {{ Number(item.exchange_rate || 0).format(2, 3) }}
+              </div>
+              <div><b>Rate Date:</b> {{ item.rate_date || "-" }}</div>
+              <div>
+                <b>PO Charge:</b> {{ Number(item.charge1 || 0).format(2, 3) }}
+              </div>
+              <div>
+                <b>Other Charge:</b>
+                {{ Number(item.other_charge || 0).format(2, 3) }}
+              </div>
+              <div>
+                <b>Discount:</b> {{ Number(item.discount || 0).format(2, 3) }}
+              </div>
+              <div><b>Payment Term:</b> {{ item.payment_term || "-" }}</div>
+              <div>
+                <b>RFQ No:</b>
+                <a
+                  v-if="item.rfq_no && item.rfq_id"
+                  :href="'#/rfq/rfq/' + item.rfq_id"
+                  target="_blank"
+                  @click.stop
+                  >{{ item.rfq_no }}</a
+                >
+                <span v-else>{{ item.rfq_no || "-" }}</span>
+              </div>
+              <div>
+                <b>PR No:</b>
+                <a
+                  v-if="item.signed_pr_url && item.pr_no"
+                  :href="item.signed_pr_url"
+                  target="_blank"
+                  @click.stop
+                  >{{ item.pr_no }}</a
+                >
+                <span v-else>{{ item.pr_no || "-" }}</span>
+              </div>
+              <div><b>Offer No:</b> {{ item.ref_offer_no || "-" }}</div>
+              <div>
+                <b>Final Quote URL:</b>
+                <a
+                  v-if="item.final_quote_url"
+                  :href="item.final_quote_url"
+                  target="_blank"
+                  @click.stop
+                  >Open Link</a
+                >
+                <span v-else>-</span>
+              </div>
+              <div>
+                <b>Signed PO URL:</b>
+                <span v-if="item.signed_po_url">
+                  <a :href="item.signed_po_url" target="_blank" @click.stop
+                    >Open Link</a
+                  >
+                </span>
+                <span v-else-if="item.po_no">
+                  <a href="javascript:void(0)" @click.stop.prevent="openReport2"
+                    >Open Link</a
+                  >
+                </span>
+                <span v-else>-</span>
               </div>
               <div>
                 <b>Grand Total:</b> {{ item.currency || "-" }}
@@ -959,6 +1026,39 @@
 
 .po-dashboard-page.is-mobile-view .po-dashboard-template .v-card {
   min-height: 0;
+}
+
+.po-dashboard-page.is-mobile-view .po-dashboard-template .po-mobile-sticky-head {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 8px 52px 8px 12px;
+  background: #f3f3f3;
+  border-top: 1px solid #e2e2e2;
+  border-bottom: 1px solid #d9d9d9;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  font-size: 15px;
+}
+
+.po-dashboard-page.is-mobile-view .po-dashboard-template .po-mobile-cards {
+  padding-top: 62px;
+}
+
+.po-dashboard-page.is-mobile-view .po-dashboard-template .po-mobile-fixed-menu-btn {
+  position: fixed !important;
+  right: 10px;
+  z-index: 35;
+  width: 34px;
+  height: 34px;
+  min-width: 34px !important;
+  background: #f3f3f3 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
 }
 </style>
 
@@ -2182,8 +2282,56 @@ module.exports = {
     dialogComment: function () {
       this.po_comment = "";
     },
+    isMobileView: function () {
+      var self = this;
+      self.$nextTick(function () {
+        self.applyMobileHeaderFix();
+      });
+    },
   },
   methods: {
+    applyMobileHeaderFix: function () {
+      var self = this;
+      if (!self.$el) return;
+      var oldFixedButtons = self.$el.querySelectorAll(".po-mobile-fixed-menu-btn");
+      oldFixedButtons.forEach(function (el) {
+        el.classList.remove("po-mobile-fixed-menu-btn");
+        el.style.top = "";
+      });
+      if (!self.isMobileView) return;
+      var stickyHead = self.$el.querySelector(".po-mobile-sticky-head");
+      var dotsIcon =
+        self.$el.querySelector(".mdi-dots-vertical") ||
+        self.$el.querySelector(".mdi-dots-horizontal");
+      if (stickyHead) {
+        var topOffset = 64;
+        var tabsEl =
+          document.querySelector(".v-tabs") ||
+          document.querySelector(".v-tabs-bar") ||
+          document.querySelector(".v-slide-group");
+        if (tabsEl) {
+          var tabsRect = tabsEl.getBoundingClientRect();
+          topOffset = Math.max(0, tabsRect.bottom);
+        }
+        stickyHead.style.top = topOffset + "px";
+      }
+      if (!dotsIcon) return;
+      var dotsButton = dotsIcon.closest("button, .v-btn");
+      if (!dotsButton) return;
+      dotsButton.classList.add("po-mobile-fixed-menu-btn");
+      if (stickyHead) {
+        var rect = stickyHead.getBoundingClientRect();
+        var btnSize = 34;
+        var top = Math.max(0, rect.top + (rect.height - btnSize) / 2);
+        dotsButton.style.top = top + "px";
+      }
+    },
+    syncMobileHeaderFix: function () {
+      var self = this;
+      window.requestAnimationFrame(function () {
+        self.applyMobileHeaderFix();
+      });
+    },
     isSelectedRow: function (item) {
       return !!(this.selected && item && this.selected.id === item.id);
     },
@@ -2849,7 +2997,23 @@ module.exports = {
     },
   },
   mounted: function () {
+    var self = this;
+    self.$nextTick(function () {
+      self.syncMobileHeaderFix();
+    });
+    setTimeout(function () {
+      self.syncMobileHeaderFix();
+    }, 150);
+    window.addEventListener("resize", self.syncMobileHeaderFix);
+    window.addEventListener("scroll", self.syncMobileHeaderFix, { passive: true });
     console.log("onlyApproveRevision:", this.onlyApproveRevision);
+  },
+  updated: function () {
+    this.syncMobileHeaderFix();
+  },
+  beforeDestroy: function () {
+    window.removeEventListener("resize", this.syncMobileHeaderFix);
+    window.removeEventListener("scroll", this.syncMobileHeaderFix);
   },
 };
 </script>
