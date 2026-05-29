@@ -441,8 +441,8 @@ module.exports = {
           data_value: [
             "Project",
             "Operational",
+            "Persediaan",
             // "Asset",
-            // "Persediaan",
           ],
           input: function (val) {
             var self = App.$get("subledger");
@@ -457,6 +457,7 @@ module.exports = {
               } else if (val.data == "Persediaan") {
                 self.headersObj.project_id.form = false;
                 self.headersObj.budget_id.form = false;
+                self.headersObj.dept_id.form = false;
                 self.headersObj.type_operational_id.form = false;
                 self.headersObj.sub_type_operational_id.form = false;
                 self.headersObj.rnd_id.form = false;
@@ -464,6 +465,7 @@ module.exports = {
               } else if (val.data == "Asset") {
                 self.headersObj.project_id.form = false;
                 self.headersObj.budget_id.form = false;
+                self.headersObj.dept_id.form = false;
                 self.headersObj.type_operational_id.form = false;
                 self.headersObj.sub_type_operational_id.form = false;
                 self.headersObj.rnd_id.form = false;
