@@ -147,6 +147,10 @@ class Prsubledger extends ResourceController
 
         foreach($model->allowedFields as $value)
         {
+            if ($value === 'id') {
+                continue;
+            }
+
 			if(isset($json->{$value}))
 				$data[$value] = $json->{$value};
         }
