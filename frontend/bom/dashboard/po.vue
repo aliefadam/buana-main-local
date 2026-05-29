@@ -258,7 +258,9 @@
       <template v-slot:item.supplier="props">
         <div style="">
           <b>Supplier:</b> {{ props.item.supplier_name }}<br />
-          <b>Promised Delivery Date:</b> {{ props.item.promised_delivery_date }}
+          <b>Promised Delivery Date:</b> {{ props.item.promised_delivery_date }}<br />
+          <b>Brand:</b> {{ props.item.brand || "-" }}<br />
+          <b>Jenis Barang:</b> {{ props.item.jenis_barang || "-" }}
         </div>
       </template>
       <template v-slot:item.final_quote_url="props">
@@ -495,6 +497,8 @@
               <div>
                 <b>Promised:</b> {{ item.promised_delivery_date || "-" }}
               </div>
+              <div><b>Brand:</b> {{ item.brand || "-" }}</div>
+              <div><b>Jenis Barang:</b> {{ item.jenis_barang || "-" }}</div>
               <div><b>Currency:</b> {{ item.currency || "-" }}</div>
               <div>
                 <b>Exchange Rate:</b>
@@ -1631,7 +1635,7 @@ module.exports = {
           type: "text",
           disabled: false,
           visible: false,
-          required: false,
+          required: true,
           form: true,
           filter: true,
           groupable: false,

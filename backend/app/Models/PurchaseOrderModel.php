@@ -33,6 +33,8 @@ class PurchaseOrderModel extends Model
         "charge2_desc",
         "note",
         "title",
+        "brand",
+        "jenis_barang",
         'flag',
         'approved',
         'ref_offer_no',

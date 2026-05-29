@@ -116,7 +116,9 @@
             </template>
             <template v-slot:item.supplier="props">
                 <b>Supplier:</b> {{ props.item.supplier_name }}<br />
-                <b>Promised Delivery Date:</b> {{ props.item.promised_delivery_date }}
+                <b>Promised Delivery Date:</b> {{ props.item.promised_delivery_date }}<br />
+                <b>Brand:</b> {{ props.item.brand || '-' }}<br />
+                <b>Jenis Barang:</b> {{ props.item.jenis_barang || '-' }}
             </template>
             <template v-slot:item.final_quote_url="props">
                 <b>Final Quote URL:</b> <a :href="props.item.final_quote_url" v-if="props.item.final_quote_url"
@@ -663,13 +665,45 @@ module.exports = {
                 "type": "list",
                 "disabled": false,
                 "visible": true,
-                "required": false,
+                "required": true,
                 "form": true,
                 "filter": true,
                 "groupable": false,
                 "clearable": true,
                 "hint": "Type to search title",
                 "data_value": [],
+            }, {
+                "text": "Brand",
+                "value": "brand",
+                "align": "start",
+                "sortable": true,
+                "filterable": false,
+                "divider": false,
+                "class": "",
+                "width": "auto",
+                "type": "varchar",
+                "disabled": false,
+                "visible": false,
+                "required": true,
+                "form": true,
+                "filter": false,
+                "groupable": false
+            }, {
+                "text": "Jenis Barang",
+                "value": "jenis_barang",
+                "align": "start",
+                "sortable": true,
+                "filterable": false,
+                "divider": false,
+                "class": "",
+                "width": "auto",
+                "type": "varchar",
+                "disabled": false,
+                "visible": false,
+                "required": true,
+                "form": true,
+                "filter": false,
+                "groupable": false
             }, {
                 "text": "Status",
                 "value": "approved",
