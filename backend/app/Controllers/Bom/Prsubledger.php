@@ -91,6 +91,14 @@ class Prsubledger extends ResourceController
         $model = new PrsubledgerModel();
         $modelPart = new PrpartModel();
         $json = $this->request->getJSON();
+
+        if (empty($json->pr_part_id)) {
+            return $this->respondCreated([
+                'status' => false,
+                'data' => 'PR Part ID is required'
+            ], 200);
+        }
+
         $q = $modelPart->info($json->pr_part_id);
 
         if($q[0]){

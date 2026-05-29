@@ -8,9 +8,9 @@
       width: 100%;
       max-width: 100%;
     ">
-    <v-template :table-loading.sync="loading" :show-expand="showExpand" :single-expand="singleExpand" :data="data"
+    <v-template :table-loading.sync="loading" :show-expand="showExpand" :single-expand="singleExpand" :value="tableValue"
       :items-options="itemsOptions" @update:selected-row="onSelectedRow" @update:selected-row-all="onSelectedRowAll"
-      delete-mode="delete" :active-column="activeColumn" v-model="value" ref="template" :item-key="itemKey" :url="url"
+      delete-mode="delete" :active-column="activeColumn" ref="template" :item-key="itemKey" :url="url"
       :headers="headers" :name="name" :table-only="tableOnly" :table-fixed-header="tableFixedHeader"
       @before-save="confirmSaveAdd" @before-edit="confirmSaveEdit" @save-notification="onSaveNotification"
       @edit-notification="onSaveNotification">
@@ -1226,6 +1226,9 @@ module.exports = {
       });
       return tmp;
     },
+    tableValue: function () {
+      return this.data || this.value;
+    },
     formFileObj: function () {
       var tmp = {},
         self = this;
@@ -1488,13 +1491,7 @@ module.exports = {
     },
     onSaveNotification: function (err) {
       if (err) {
-        // if (
-        //   err.isUserCancel ||
-        //   err.message === "USER_CANCEL_ADD_SAVE" ||
-        //   err.message === "USER_CANCEL_MINUS_BUDGET_SAVE"
-        // ) {
-        // }
-        // App.errorMsg(err);
+        App.errorMsg(err);
         return;
       }
       App.successMsg();
