@@ -10,8 +10,7 @@
     ">
     <v-template :table-loading.sync="loading" :show-expand="showExpand" :single-expand="singleExpand" :data="data"
       :items-options="itemsOptions" @update:selected-row="onSelectedRow" @update:selected-row-all="onSelectedRowAll"
-      delete-mode="delete" :active-column="activeColumn" ref="template" :item-key="itemKey" :url="url"
-      @before-get-items="applyPartFilter"
+      delete-mode="delete" :active-column="activeColumn" v-model="value" ref="template" :item-key="itemKey" :url="url"
       :headers="headers" :name="name" :table-only="tableOnly" :table-fixed-header="tableFixedHeader"
       @before-save="confirmSaveAdd" @before-edit="confirmSaveEdit" @save-notification="onSaveNotification"
       @edit-notification="onSaveNotification">
@@ -1227,9 +1226,6 @@ module.exports = {
       });
       return tmp;
     },
-    tableValue: function () {
-      return this.data || this.value || {};
-    },
     formFileObj: function () {
       var tmp = {},
         self = this;
@@ -1452,21 +1448,8 @@ module.exports = {
           );
         });
     },
-    applyPartFilter: async function (opt) {
-      var tableValue = this.tableValue;
-      if (tableValue.pr_part_id !== undefined) {
-        opt.params.filter = opt.params.filter || {};
-        opt.params.filter.pr_part_id = tableValue.pr_part_id;
-      }
-    },
-    confirmSaveAdd: async function (opt) {
-      var tableValue = this.tableValue || {};
-      if (tableValue.pr_part_id !== undefined) {
-        opt.params.pr_part_id = tableValue.pr_part_id;
-      }
-
+    confirmSaveAdd: async function () {
       // Requirement input is intentionally hidden in form; send fallback value.
-      opt.params.requirement = "-";
       this.headersObj.requirement.data = "-";
       if (this.isOperationalBudgetInsufficient()) {
         App.errorMsg("Sisa Budget Tidak Cukup");
@@ -1505,7 +1488,13 @@ module.exports = {
     },
     onSaveNotification: function (err) {
       if (err) {
-        App.errorMsg(err);
+        // if (
+        //   err.isUserCancel ||
+        //   err.message === "USER_CANCEL_ADD_SAVE" ||
+        //   err.message === "USER_CANCEL_MINUS_BUDGET_SAVE"
+        // ) {
+        // }
+        // App.errorMsg(err);
         return;
       }
       App.successMsg();

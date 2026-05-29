@@ -8,56 +8,6 @@ use App\Models\Bom\PrpartModel;
 class Prsubledger extends ResourceController
 {
     use ResponseTrait;
-
-    private function normalizeByProjectType(array $data): array
-    {
-        $projectType = $data['project_type'] ?? null;
-
-        if ($projectType === 'Project') {
-            $data['dept_id'] = null;
-            $data['type_operational_id'] = null;
-            $data['sub_type_operational_id'] = null;
-            $data['rnd_id'] = null;
-            return $data;
-        }
-
-        if ($projectType === 'Operational') {
-            $data['project_id'] = null;
-            $data['budget_id'] = null;
-            $data['category_item_id'] = null;
-            $data['alokasi_pembelian'] = null;
-            $data['rnd_id'] = null;
-            $data['force_budget_minus_reason'] = null;
-            return $data;
-        }
-
-        if ($projectType === 'R&D') {
-            $data['project_id'] = null;
-            $data['budget_id'] = null;
-            $data['category_item_id'] = null;
-            $data['alokasi_pembelian'] = null;
-            $data['dept_id'] = null;
-            $data['type_operational_id'] = null;
-            $data['sub_type_operational_id'] = null;
-            $data['force_budget_minus_reason'] = null;
-            return $data;
-        }
-
-        if ($projectType === 'Persediaan' || $projectType === 'Asset') {
-            $data['project_id'] = null;
-            $data['budget_id'] = null;
-            $data['category_item_id'] = null;
-            $data['alokasi_pembelian'] = null;
-            $data['dept_id'] = null;
-            $data['type_operational_id'] = null;
-            $data['sub_type_operational_id'] = null;
-            $data['rnd_id'] = null;
-            $data['is_warning'] = 0;
-            $data['force_budget_minus_reason'] = null;
-        }
-
-        return $data;
-    }
 	
     public function index()
     {
@@ -91,14 +41,6 @@ class Prsubledger extends ResourceController
         $model = new PrsubledgerModel();
         $modelPart = new PrpartModel();
         $json = $this->request->getJSON();
-
-        if (empty($json->pr_part_id)) {
-            return $this->respondCreated([
-                'status' => false,
-                'data' => 'PR Part ID is required'
-            ], 200);
-        }
-
         $q = $modelPart->info($json->pr_part_id);
 
         if($q[0]){
@@ -147,17 +89,12 @@ class Prsubledger extends ResourceController
 
         foreach($model->allowedFields as $value)
         {
-            if ($value === 'id') {
-                continue;
-            }
-
 			if(isset($json->{$value}))
 				$data[$value] = $json->{$value};
         }
         
         $data['is_warning'] = $is_warning ? 1 : 0;
         $data['force_budget_minus_reason'] = $force_budget_minus_reason;
-        $data = $this->normalizeByProjectType($data);
     
 		$session = session();
 		$s = $session->get();
@@ -234,11 +171,13 @@ class Prsubledger extends ResourceController
     
                 foreach($json as $key => $value) 
                 {
+                    if($json->project_type != "Project") {
+                        $data["project_id"] = "";
+                    }
                     if($key!='pk') {
                         $data[$key] = $value;
                     }
                 }
-                $data = $this->normalizeByProjectType($data);
             }
             $session = session();
     		$s = $session->get();
