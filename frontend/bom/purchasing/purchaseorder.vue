@@ -2737,12 +2737,15 @@ module.exports = {
             var projectTypeMap = await self.getProjectTypeMap(subledgerIds)
             var groupedProjectIds = {}
             var groupedOperationalIds = {}
+            var groupedPersediaanIds = {}
             Object.keys(groupedIds).map((price) => {
                 groupedProjectIds[price] = []
                 groupedOperationalIds[price] = []
+                groupedPersediaanIds[price] = []
                 groupedIds[price].map((subledgerId) => {
-                    var projectType = projectTypeMap[subledgerId]
-                    if (String(projectType || '').toLowerCase() === 'operational') groupedOperationalIds[price].push(subledgerId)
+                    var projectType = String(projectTypeMap[subledgerId] || '').toLowerCase()
+                    if (projectType === 'operational') groupedOperationalIds[price].push(subledgerId)
+                    else if (projectType === 'persediaan') groupedPersediaanIds[price].push(subledgerId)
                     else groupedProjectIds[price].push(subledgerId)
                 })
             })
@@ -2787,12 +2790,47 @@ module.exports = {
                         })
                     )
                 })
+                Object.keys(groupedPersediaanIds).map((price) => {
+                    if (groupedPersediaanIds[price].length === 0) return
+                    requests.push(
+                        axios.get('https://panel.buanamultiteknik.com/api/budget/persediaan/summary', {
+                            params: { price: price, subledger_id: groupedPersediaanIds[price].join(',') }
+                        }).then((budgetRes) => {
+                            var rawData = budgetRes && budgetRes.data
+                                ? budgetRes.data.budget !== undefined
+                                    ? budgetRes.data.budget
+                                    : budgetRes.data.data
+                                : []
+                            var budgetData = Array.isArray(rawData)
+                                ? rawData
+                                : rawData && typeof rawData === 'object'
+                                    ? [rawData]
+                                    : []
+                            budgetData.map((d) => {
+                                var subledgerId = d.subledger_id !== undefined ? d.subledger_id : d.id
+                                if ((subledgerId === undefined || subledgerId === null) && groupedPersediaanIds[price].length === 1) {
+                                    subledgerId = groupedPersediaanIds[price][0]
+                                }
+                                if (subledgerId === undefined || subledgerId === null) return
+                                remainingMap[subledgerId] = d.remaining !== undefined ? d.remaining : d.remaining_budget
+                                remainingTotalDepartmentMap[subledgerId] =
+                                    d.remaining_bugdet_total_department !== undefined
+                                        ? d.remaining_bugdet_total_department
+                                        : d.remaining_budget_total_department
+                                warningMap[subledgerId] = !!d.is_warning
+                            })
+                        })
+                    )
+                })
                 await Promise.all(requests)
                 self.remainingBudgetItems = self.remainingBudgetItems.map((item) => {
                     var projectType = projectTypeMap[item.subledger_id]
                     var label = operationalLabelMap[item.subledger_id]
                     var isOperational = String(projectType || '').toLowerCase() === 'operational'
-                    var projectBudgetLabel = isOperational && label ? label : item.project_budget_label
+                    var isPersediaan = String(projectType || '').toLowerCase() === 'persediaan'
+                    var projectBudgetLabel = isPersediaan
+                        ? 'Persediaan'
+                        : (isOperational && label ? label : item.project_budget_label)
                     return Object.assign({}, item, {
                         remaining_budget: remainingMap[item.subledger_id],
                         remaining_bugdet_total_department: remainingTotalDepartmentMap[item.subledger_id],
