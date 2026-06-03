@@ -179,6 +179,33 @@
 					"page": "1",
 					"limit": "10"
 				}, {
+					"text": "Reference No",
+					"value": "reference_no",
+					"align": "start",
+					"sortable": true,
+					"filterable": false,
+					"divider": false,
+					"class": "",
+					"width": "auto",
+					"type": "varchar",
+					"disabled": false,
+					"visible": true,
+					"required": true,
+					"form": true,
+					"filter": true,
+					"groupable": false,
+					"url": "",
+					"searchby": [],
+					"formatter": [],
+					"options": {
+						"filter": {},
+						"filterType": {},
+						"filterCondition": {}
+					},
+					"paging": true,
+					"page": "1",
+					"limit": "10"
+				}, {
 					"text": "Keterangan",
 					"value": "keterangan",
 					"align": "start",

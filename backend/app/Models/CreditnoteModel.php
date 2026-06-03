@@ -7,7 +7,7 @@ class CreditnoteModel extends Model
     protected $table = 'credit_note';
     protected $returnType     = 'object';
     protected $primaryKey = 'id';
-    protected $allowedFields = ["id","credit_no","amount","currency","file","supplier_id","po_id","keterangan","created_by","created_date"];
+    protected $allowedFields = ["id","credit_no","reference_no","amount","currency","file","supplier_id","po_id","keterangan","created_by","created_date"];
 	
 	protected function initialize()
     {
