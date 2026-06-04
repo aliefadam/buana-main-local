@@ -86,7 +86,7 @@ class Database extends Config
         'hostname' => 'localhost',
         'username' => 'buanamultiteknik_internal',
         'password' => 'internal123',
-        'database' => 'buanamultiteknik_finance',
+        'database' => 'buan_finance',
         'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
