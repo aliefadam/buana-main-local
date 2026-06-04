@@ -168,7 +168,7 @@
                 <b>PCT:</b> {{ Number(props.item.payment_pct) }} % 
             </template>
             <template v-slot:item.invoice_detail="props">
-                <span  v-if="props.item.po_no"><b>No PO:</b> <a @click="openReport2">{{props.item.po_no}}</a></span><span v-else><b>No:  {{ props.item.as_reference == 0 ? "" : "As Reference" }}</b></span><br />
+                <span  v-if="props.item.po_no"><b>No PO:</b> <a @click.stop.prevent="openReport2(props.item)">{{props.item.po_no}}</a></span><span v-else><b>No:  {{ props.item.as_reference == 0 ? "" : "As Reference" }}</b></span><br />
                 <b>Title</b> :{{props.item.as_reference == 0 ? props.item.title : props.item.uraian}}  <br />
                 <b>Reference No</b> :{{ props.item.cash_advance_ticket_no || props.item.tef_invoice_no || '-' }}<br/>
                 <span v-if="props.item.cash_advance_ticket_no">
@@ -206,6 +206,14 @@
 
         <v-action-dialog @save="saveFile" title="Payment Info" v-model="dialogFile" v-if="showPaymentInfo">
             <v-autoform v-model="formFile" :valid="valid"></v-autoform>
+        </v-action-dialog>
+        <v-action-dialog :actions="false" v-model="dialogReport" title="Purchase Order Report" fullscreen>
+            <iframe
+                v-if="reportUrl"
+                :src="reportUrl"
+                frameborder="0"
+                style="border: 0; width: 100%; height: calc(100vh - 96px);"
+            ></iframe>
         </v-action-dialog>
     </v-container>
 </template>
@@ -301,6 +309,8 @@
                 name: "Payment",
                 itemKey: "id",
                 url: "bom/paymentitem",
+                dialogReport: false,
+                reportUrl: "",
                 headers: [{
                         text: "id",
                         value: "id",
@@ -1011,12 +1021,17 @@
                 var self = this;
                 self.selectedAll = val;
             },
-            openReport2: function(){
+            openReport2: function(item){
                 var self = this
-                //dialogReport=true
-                var name = self.selected.po_no.replace(/\//g, '_').replace(/\-/g, '_')
+                var target = item || self.selected
+                if (!target || !target.po_id || !target.po_no) {
+                    App.errorMsg('PO data not found')
+                    return
+                }
+                var name = target.po_no.replace(/\//g, '_').replace(/\-/g, '_')
                 var randomid= randomId()
-                window.open( 'https://main.buanamultiteknik.com/api/data/reportpo2?id='+ self.selected.po_id+ '&filename=' + name+'&idx='+ randomid)
+                self.reportUrl = 'https://main.buanamultiteknik.com/api/data/reportpo2?id=' + target.po_id + '&filename=' + name + '&idx=' + randomid
+                self.dialogReport = true
             },
             nextPayment: function(date, days) {
                 if(date && days){
