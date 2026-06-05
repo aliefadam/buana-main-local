@@ -11,10 +11,10 @@
 		</v-tabs>
         <v-tabs-items v-model="tab" style="flex: 1;" class="tabs" touchless>
 			<v-tab-item :value="0" :key="0" style="height: 100%;">
-				<po v-if="dept1!=false || check_user(['rusbi', 'administrator'])" :items-options="poItemsOptions" table-only btn-ask-draft></po>
+				<po v-if="dept1!=false || check_user(['rusbi', 'administrator'])" :items-options="poItemsOptions" :approval1="true" table-only btn-ask-draft></po>
 			</v-tab-item>
 			<v-tab-item :value="1" :key="1" style="height: 100%;">
-				<po v-if="dept1!=false || check_user(['rdarmagiri', 'administrator'])" :items-options="poItemsOptions2" table-only btn-approve-draft></po>
+				<po v-if="dept1!=false || check_user(['rdarmagiri', 'administrator'])" :items-options="poItemsOptions2" :approval1="false" table-only btn-approve-draft></po>
 			</v-tab-item>
 			<!--<v-tab-item :value="2" :key="2" style="height: 100%;" v-if="check_user(['rdarmagiri', 'administrator', 'payment_validator'])">-->
 			<!--	<payment key="payment1" type="1" :items-options="paymentItemsOptions(1)" table-only></payment>-->

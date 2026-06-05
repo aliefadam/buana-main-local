@@ -258,9 +258,18 @@
       <template v-slot:item.supplier="props">
         <div style="">
           <b>Supplier:</b> {{ props.item.supplier_name }}<br />
-          <b>Promised Delivery Date:</b> {{ props.item.promised_delivery_date }}<br />
-          <b>Brand:</b> {{ props.item.brand || "-" }}<br />
-          <b>Jenis Barang:</b> {{ props.item.jenis_barang || "-" }}
+          <b>Promised Delivery Date:</b> {{ props.item.promised_delivery_date
+          }}<br />
+          <template v-if="!showSummaryInList">
+            <b>Brand:</b> {{ props.item.brand || "-" }}<br />
+            <b>Jenis Barang:</b> {{ props.item.jenis_barang || "-" }}
+          </template>
+          <template v-else>
+            <b>Summary:</b><br />
+            <div style="white-space: pre-line">
+              {{ props.item.summary || "-" }}
+            </div>
+          </template>
         </div>
       </template>
       <template v-slot:item.final_quote_url="props">
@@ -497,8 +506,15 @@
               <div>
                 <b>Promised:</b> {{ item.promised_delivery_date || "-" }}
               </div>
-              <div><b>Brand:</b> {{ item.brand || "-" }}</div>
-              <div><b>Jenis Barang:</b> {{ item.jenis_barang || "-" }}</div>
+              <div v-if="!showSummaryInList">
+                <b>Brand:</b> {{ item.brand || "-" }}
+              </div>
+              <div v-if="!showSummaryInList">
+                <b>Jenis Barang:</b> {{ item.jenis_barang || "-" }}
+              </div>
+              <div v-else style="white-space: pre-line">
+                <b>Summary:</b> {{ item.summary || "-" }}
+              </div>
               <div><b>Currency:</b> {{ item.currency || "-" }}</div>
               <div>
                 <b>Exchange Rate:</b>
@@ -672,6 +688,31 @@
       min-height="75%"
       @save="approve"
     >
+      <div
+        v-if="selected && Number(selected.approved) === 1 && summaryLoading"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 12px;
+          margin-bottom: 12px;
+          color: #666;
+        "
+      >
+        <v-progress-circular
+          indeterminate
+          size="18"
+          width="2"
+        ></v-progress-circular>
+        <span>Generate summary...</span>
+      </div>
+      <v-textarea
+        v-if="selected && Number(selected.approved) === 1"
+        label="Summary"
+        v-model="summary"
+        :loading="summaryLoading"
+        :disabled="summaryLoading"
+      ></v-textarea>
       <v-textarea label="Note" v-model="approval_note"></v-textarea>
     </v-action-dialog>
     <v-action-dialog
@@ -1032,7 +1073,9 @@
   min-height: 0;
 }
 
-.po-dashboard-page.is-mobile-view .po-dashboard-template .po-mobile-sticky-head {
+.po-dashboard-page.is-mobile-view
+  .po-dashboard-template
+  .po-mobile-sticky-head {
   position: fixed;
   top: 0;
   left: 0;
@@ -1053,7 +1096,9 @@
   padding-top: 62px;
 }
 
-.po-dashboard-page.is-mobile-view .po-dashboard-template .po-mobile-fixed-menu-btn {
+.po-dashboard-page.is-mobile-view
+  .po-dashboard-template
+  .po-mobile-fixed-menu-btn {
   position: fixed !important;
   right: 10px;
   z-index: 35;
@@ -1123,6 +1168,8 @@ module.exports = {
       itemKey: "id",
       po_comment: "",
       approval_note: "",
+      summary: "",
+      summaryLoading: false,
       reject_note: "",
       approval_revision_note: "",
       ask_draft_note: "",
@@ -2281,6 +2328,22 @@ module.exports = {
         this.$vuetify.breakpoint.smAndDown
       );
     },
+    isApproval1View: function () {
+      if (this.approval1 === true) return true;
+      if (!this.itemsOptions || !this.itemsOptions.filter) return false;
+      var approved = this.itemsOptions.filter.approved;
+      if (approved === 1) return true;
+      if (typeof approved === "string") {
+        return approved
+          .split(",")
+          .map((value) => value.trim())
+          .includes("1");
+      }
+      return false;
+    },
+    showSummaryInList: function () {
+      return !this.nointeraction && !this.isApproval1View;
+    },
   },
   watch: {
     dialogComment: function () {
@@ -2297,7 +2360,9 @@ module.exports = {
     applyMobileHeaderFix: function () {
       var self = this;
       if (!self.$el) return;
-      var oldFixedButtons = self.$el.querySelectorAll(".po-mobile-fixed-menu-btn");
+      var oldFixedButtons = self.$el.querySelectorAll(
+        ".po-mobile-fixed-menu-btn",
+      );
       oldFixedButtons.forEach(function (el) {
         el.classList.remove("po-mobile-fixed-menu-btn");
         el.style.top = "";
@@ -2468,10 +2533,40 @@ module.exports = {
     openApprove: function () {
       var self = this;
       this.approval_note = "";
+      this.summary = "";
+      this.summaryLoading = false;
 
       if (self.selected.approved == 1 || self.selected.approved == -2) {
         this.dialogNote = true;
-      } else {
+      }
+
+      if (self.selected && Number(self.selected.approved) === 1) {
+        if ((self.selected.summary || "").trim() !== "") {
+          this.summary = self.selected.summary || "";
+        } else {
+          this.summaryLoading = true;
+          self
+            .buildDefaultSummary(self.selected)
+            .then(function (summary) {
+              if (
+                self.dialogNote &&
+                self.selected &&
+                Number(self.selected.approved) === 1 &&
+                (self.summary || "").trim() === ""
+              ) {
+                self.summary = summary;
+              }
+            })
+            .catch(function (e) {
+              console.log("Default summary build error:", e);
+            })
+            .finally(function () {
+              self.summaryLoading = false;
+            });
+        }
+      }
+
+      if (!(self.selected.approved == 1 || self.selected.approved == -2)) {
         this.approve();
       }
     },
@@ -2534,6 +2629,9 @@ module.exports = {
             return false;
           }
           params.approval_note = self.approval_note;
+          if (self.selected.approved == 1) {
+            params.summary = self.summary;
+          }
         }
         var r = await axios.put(App.url + "bom/purchaseorder", params);
         if (!r.data.status) App.errorMsg(r.data);
@@ -2674,8 +2772,86 @@ module.exports = {
 
       //window.open('https://main.buanamultiteknik.com/api/report/po/index?po_id='+self.selected.id)
     },
-    fetchRemainingBudgetItems: async function (poId) {
+    formatSummaryCurrency: function (currency, amount) {
+      var currencyLabel = currency || "IDR";
+      var numericAmount = Number(amount || 0);
+      return (
+        currencyLabel +
+        " " +
+        numericAmount.toLocaleString("id-ID", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      );
+    },
+    getSummaryAllocationText: function (items) {
+      var labels = [];
+      (items || []).map((item) => {
+        var label = (item.project_budget_label || "").trim();
+        var projectType = (
+          item.project_type_label ||
+          item.project_type ||
+          "Project"
+        ).trim();
+        var prefixedLabel = label ? "(" + projectType + ") " + label : "";
+        if (prefixedLabel && !labels.includes(prefixedLabel)) {
+          labels.push(prefixedLabel);
+        }
+      });
+      return labels.length ? labels.join(" | ") : "-";
+    },
+    getSummaryRemainingBudgetText: function (items) {
+      var amounts = [];
+      var seen = {};
+      (items || []).map((item) => {
+        var amount = item.remaining_budget;
+        var key = String(amount);
+        if (seen[key]) return;
+        seen[key] = true;
+        if (amount === undefined || amount === null || amount === "") {
+          amounts.push("-");
+          return;
+        }
+        amounts.push(
+          "IDR " +
+            Number(amount || 0).toLocaleString("id-ID", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }),
+        );
+      });
+      return amounts.length ? amounts.join(" | ") : "-";
+    },
+    buildDefaultSummary: async function (item) {
       var self = this;
+      var remainingBudgetText = "-";
+      var allocationText = "-";
+
+      try {
+        var budgetItems = await self.fetchRemainingBudgetItems(item.id, {
+          silent: true,
+        });
+        allocationText = self.getSummaryAllocationText(budgetItems);
+        remainingBudgetText = self.getSummaryRemainingBudgetText(budgetItems);
+      } catch (e) {
+        console.log("Default summary budget fetch error:", e);
+      }
+
+      return [
+        "Subject PR : " + (item.pr_subject || "-"),
+        "Allocation : " + allocationText,
+        "Supplier/Vendor : " + (item.supplier_name || "-"),
+        "Brand : " + (item.brand || "-"),
+        "Jenis Barang : " + (item.jenis_barang || "-"),
+        "Total price : " +
+          self.formatSummaryCurrency(item.currency, item.grand_total),
+        "Remaining Budget : " + remainingBudgetText,
+        "Delivery Time : -",
+      ].join("\n");
+    },
+    fetchRemainingBudgetItems: async function (poId, options) {
+      var self = this;
+      options = options || {};
       self.remainingBudgetLoading = true;
       self.remainingBudgetCalcLoading = false;
       try {
@@ -2688,10 +2864,10 @@ module.exports = {
           },
         );
         if (!r.data.status) {
-          App.errorMsg(r.data);
+          if (!options.silent) App.errorMsg(r.data);
           self.remainingBudgetItems = [];
           self.remainingBudgetLoading = false;
-          return;
+          return [];
         }
         var items = r.data.data || [];
         var groupMap = {};
@@ -2762,10 +2938,11 @@ module.exports = {
           await self.calculateRemainingBudget();
         }
       } catch (e) {
-        App.errorMsg(e);
+        if (!options.silent) App.errorMsg(e);
         self.remainingBudgetItems = [];
       }
       self.remainingBudgetLoading = false;
+      return self.remainingBudgetItems;
     },
     calculateRemainingBudget: async function () {
       var self = this;
@@ -2791,7 +2968,9 @@ module.exports = {
         groupedOperationalIds[price] = [];
         groupedPersediaanIds[price] = [];
         groupedIds[price].map((subledgerId) => {
-          var projectType = String(projectTypeMap[subledgerId] || "").toLowerCase();
+          var projectType = String(
+            projectTypeMap[subledgerId] || "",
+          ).toLowerCase();
           if (projectType === "operational") {
             groupedOperationalIds[price].push(subledgerId);
           } else if (projectType === "persediaan") {
@@ -2916,7 +3095,9 @@ module.exports = {
                   }
                   if (subledgerId === undefined || subledgerId === null) return;
                   remainingMap[subledgerId] =
-                    d.remaining !== undefined ? d.remaining : d.remaining_budget;
+                    d.remaining !== undefined
+                      ? d.remaining
+                      : d.remaining_budget;
                   remainingTotalDepartmentMap[subledgerId] =
                     d.remaining_bugdet_total_department !== undefined
                       ? d.remaining_bugdet_total_department
@@ -2934,17 +3115,19 @@ module.exports = {
             String(projectType || "").toLowerCase() === "operational";
           var isPersediaan =
             String(projectType || "").toLowerCase() === "persediaan";
-          var projectBudgetLabel =
-            isPersediaan
-              ? "Persediaan"
-              : isOperational && label
-                ? label
-                : item.project_budget_label;
+          var projectTypeLabel = projectType || "Project";
+          var projectBudgetLabel = isPersediaan
+            ? "Persediaan"
+            : isOperational && label
+              ? label
+              : item.project_budget_label;
           return Object.assign({}, item, {
             remaining_budget: remainingMap[item.subledger_id],
             remaining_bugdet_total_department:
               remainingTotalDepartmentMap[item.subledger_id],
             is_operational: isOperational,
+            project_type: projectType,
+            project_type_label: projectTypeLabel,
             is_warning:
               warningMap[item.subledger_id] !== undefined
                 ? warningMap[item.subledger_id]
@@ -3066,7 +3249,9 @@ module.exports = {
       self.syncMobileHeaderFix();
     }, 150);
     window.addEventListener("resize", self.syncMobileHeaderFix);
-    window.addEventListener("scroll", self.syncMobileHeaderFix, { passive: true });
+    window.addEventListener("scroll", self.syncMobileHeaderFix, {
+      passive: true,
+    });
     console.log("onlyApproveRevision:", this.onlyApproveRevision);
   },
   updated: function () {
