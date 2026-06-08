@@ -208,12 +208,23 @@
             <v-autoform v-model="formFile" :valid="valid"></v-autoform>
         </v-action-dialog>
         <v-action-dialog :actions="false" v-model="dialogReport" title="Purchase Order Report" fullscreen>
-            <iframe
-                v-if="reportUrl"
-                :src="reportUrl"
-                frameborder="0"
-                style="border: 0; width: 100%; height: calc(100vh - 96px);"
-            ></iframe>
+            <div style="position: relative; width: 100%; min-height: calc(100vh - 96px);">
+                <div
+                    v-if="reportLoading"
+                    style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(255, 255, 255, 0.92); z-index: 1;"
+                >
+                    <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
+                    <span style="color: #555;">Loading purchase order report...</span>
+                </div>
+                <iframe
+                    v-if="reportUrl"
+                    :key="activeReportKey"
+                    :src="reportUrl"
+                    frameborder="0"
+                    style="border: 0; width: 100%; height: calc(100vh - 96px);"
+                    @load="onReportLoaded(activeReportKey)"
+                ></iframe>
+            </div>
         </v-action-dialog>
     </v-container>
 </template>
@@ -310,7 +321,10 @@
                 itemKey: "id",
                 url: "bom/paymentitem",
                 dialogReport: false,
+                reportLoading: false,
                 reportUrl: "",
+                reportRequestKey: 0,
+                activeReportKey: 0,
                 headers: [{
                         text: "id",
                         value: "id",
@@ -1030,8 +1044,21 @@
                 }
                 var name = target.po_no.replace(/\//g, '_').replace(/\-/g, '_')
                 var randomid= randomId()
-                self.reportUrl = 'https://main.buanamultiteknik.com/api/data/reportpo2?id=' + target.po_id + '&filename=' + name + '&idx=' + randomid
+                var requestKey = self.reportRequestKey + 1
+                self.reportRequestKey = requestKey
+                self.activeReportKey = requestKey
+                self.reportLoading = true
+                self.reportUrl = ''
                 self.dialogReport = true
+                self.$nextTick(function() {
+                    if (self.activeReportKey !== requestKey) return
+                    self.reportUrl = 'https://main.buanamultiteknik.com/api/data/reportpo2?id=' + target.po_id + '&filename=' + name + '&idx=' + randomid
+                })
+            },
+            onReportLoaded: function(reportKey) {
+                var self = this
+                if (reportKey !== self.activeReportKey) return
+                self.reportLoading = false
             },
             nextPayment: function(date, days) {
                 if(date && days){
@@ -1063,6 +1090,13 @@
             if (self.showPaymentInfo || self.history) {
                 self.headersObj.btn_payment_info.visible = true
                 self.headersObj.payment_info.visible = true
+            }
+        },
+        watch: {
+            dialogReport: function(val) {
+                if (val) return
+                this.reportLoading = false
+                this.reportUrl = ''
             }
         },
     };

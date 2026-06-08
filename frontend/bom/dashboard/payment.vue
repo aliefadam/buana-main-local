@@ -1,5 +1,7 @@
 <template>
   <v-container
+    class="payment-dashboard-page"
+    :class="{ 'is-mobile-view': isMobileView }"
     style="
       padding: 0 !important;
       height: 100%;
@@ -11,6 +13,7 @@
     "
   >
     <v-template
+      class="payment-dashboard-template"
       custom-sort
       v-model="value"
       ref="template"
@@ -25,6 +28,11 @@
       :show-expand="true"
       :single-expand="true"
     >
+      <template v-slot:title-body v-if="$refs.template">
+        <div class="payment-mobile-sticky-head">
+          <b>Count Rows: </b>{{ $refs.template.itemsTotal }}
+        </div>
+      </template>
       <template v-slot:menu-after-filter>
         <!-- <v-btn color="primary" outlined small @click="dialogItem = true" :disabled="!selected">
                     Add Invoice
@@ -119,17 +127,262 @@
           ><b>Approved by:</b> {{ props.item.approved2 }}</span
         >
       </template>
+      <template v-slot:append-body="slotProps">
+        <div v-if="isMobileView" class="payment-mobile-cards">
+          <div
+            v-if="!slotProps.items || slotProps.items.length === 0"
+            class="payment-mobile-empty"
+          >
+            No data available
+          </div>
+          <v-card
+            v-for="item in slotProps.items"
+            :key="'mobile-dashboard-payment-' + item.id"
+            outlined
+            class="payment-mobile-card"
+            :class="{ 'payment-mobile-card--selected': isSelectedRow(item) }"
+            @click="selectMobileRow(item)"
+          >
+            <div class="payment-mobile-card__head">
+              <div>
+                <div class="payment-mobile-card__po">
+                  {{ item.payment_no || "-" }}
+                </div>
+                <div class="payment-mobile-card__title">
+                  {{ item.notes || "-" }}
+                </div>
+              </div>
+              <v-chip
+                x-small
+                label
+                :color="statusChipColor(item.approved)"
+                text-color="#1f1f1f"
+              >
+                {{ approvedStatus(item.approved) }}
+              </v-chip>
+            </div>
+
+            <div class="payment-mobile-card__grid">
+              <div><b>Payment Date:</b> {{ item.payment_date || "-" }}</div>
+              <div><b>Title:</b> {{ item.notes || "-" }}</div>
+              <div>
+                <b>Grand Total:</b> Rp.
+                {{ item.totalrp || "0.00" }}
+              </div>
+              <div v-if="item.approved1_date">
+                <b>Validated date:</b> {{ item.approved1_date }}
+              </div>
+              <div v-if="item.approved1">
+                <b>Validated by:</b> {{ item.approved1 }}
+              </div>
+              <div v-if="item.approved2_date">
+                <b>Approved date:</b> {{ item.approved2_date }}
+              </div>
+              <div v-if="item.approved2">
+                <b>Approved by:</b> {{ item.approved2 }}
+              </div>
+            </div>
+
+            <div class="payment-mobile-card__actions">
+              <v-btn small color="primary" outlined @click.stop="openItemsByRow(item)">
+                <v-icon small left>mdi-format-list-bulleted</v-icon>Items
+              </v-btn>
+              <v-btn
+                v-if="type == 2 || type == 1"
+                small
+                color="primary"
+                outlined
+                @click.stop="openReportWebByRow(item)"
+              >
+                <v-icon small left>mdi-printer</v-icon>Print
+              </v-btn>
+              <template v-if="!nointeraction">
+                <v-btn
+                  v-if="type == 1"
+                  small
+                  color="success"
+                  outlined
+                  @click.stop="approveByRow(item)"
+                  :disabled="!canApprove1(item)"
+                >
+                  Approve
+                </v-btn>
+                <v-btn
+                  v-if="type == 2"
+                  small
+                  color="success"
+                  outlined
+                  @click.stop="approveByRow(item)"
+                  :disabled="!canApprove2(item)"
+                >
+                  Approve
+                </v-btn>
+                <v-btn
+                  small
+                  color="red"
+                  outlined
+                  @click.stop="rejectByRow(item)"
+                  :disabled="!item"
+                >
+                  Reject
+                </v-btn>
+              </template>
+            </div>
+
+          </v-card>
+        </div>
+      </template>
     </v-template>
-    <!-- <v-action-dialog :actions="false" v-model="dialogItem" title="Detail" min-height="75%" fullscreen
-            :key="selected.id">
-            <payment-item :data="processData" :key="selected.id"></payment-item>
-        </v-action-dialog> -->
+    <v-action-dialog
+      :actions="false"
+      v-model="dialogItem"
+      title="Payment Item"
+      min-height="75%"
+      fullscreen
+      :key="selected ? selected.id : 'payment-detail'"
+    >
+      <payment-item
+        v-if="selected"
+        table-only
+        :data="processData"
+        :key="selected.id"
+      ></payment-item>
+    </v-action-dialog>
   </v-container>
 </template>
 
 <style scoped>
 .v-data-table__wrapper > table > tbody > tr > td {
   font-size: 0.775rem;
+}
+
+.payment-mobile-cards {
+  flex: 1;
+  min-height: 0;
+  padding: 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.payment-mobile-empty {
+  padding: 14px;
+  text-align: center;
+  color: #666;
+}
+
+.payment-mobile-card {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.payment-mobile-card--selected {
+  border-color: #1976d2 !important;
+  box-shadow: 0 0 0 1px #1976d2 inset;
+}
+
+.payment-mobile-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.payment-mobile-card__po {
+  font-weight: 700;
+}
+
+.payment-mobile-card__title {
+  font-size: 0.82rem;
+  color: #333;
+}
+
+.payment-mobile-card__grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.payment-mobile-card__actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+</style>
+
+<style>
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .table-container,
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .template-table,
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .v-data-footer,
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .v-data-table,
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .v-data-table__wrapper {
+  display: none !important;
+}
+
+.payment-dashboard-page.is-mobile-view {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.payment-dashboard-page.is-mobile-view .payment-dashboard-template {
+  min-height: 0;
+  height: auto !important;
+}
+
+.payment-dashboard-page.is-mobile-view .payment-dashboard-template .v-card {
+  min-height: 0;
+}
+
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .payment-mobile-sticky-head {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 8px 52px 8px 12px;
+  background: #f3f3f3;
+  border-top: 1px solid #e2e2e2;
+  border-bottom: 1px solid #d9d9d9;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  font-size: 15px;
+}
+
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .payment-mobile-cards {
+  padding-top: 62px;
+}
+
+.payment-dashboard-page.is-mobile-view
+  .payment-dashboard-template
+  .payment-mobile-fixed-menu-btn {
+  position: fixed !important;
+  right: 10px;
+  z-index: 35;
+  width: 34px;
+  height: 34px;
+  min-width: 34px !important;
+  background: #f3f3f3 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
 }
 </style>
 
@@ -380,24 +633,118 @@ module.exports = {
       if (self.selected.approved == 3) return false;
       return true;
     },
-  },
-  methods: {
-    openReport: function () {
-      var self = this;
-      window.open(
-        "https://main.buanamultiteknik.com/api/report/payment/index?id=" +
-          self.selected.id,
+    isMobileView: function () {
+      return !!(
+        this.$vuetify &&
+        this.$vuetify.breakpoint &&
+        this.$vuetify.breakpoint.smAndDown
       );
     },
-    openReportWeb: function () {
+  },
+  watch: {
+    isMobileView: function () {
       var self = this;
+      self.$nextTick(function () {
+        self.applyMobileHeaderFix();
+      });
+    },
+  },
+  methods: {
+    applyMobileHeaderFix: function () {
+      var self = this;
+      if (!self.$el) return;
+      var oldFixedButtons = self.$el.querySelectorAll(
+        ".payment-mobile-fixed-menu-btn",
+      );
+      oldFixedButtons.forEach(function (el) {
+        el.classList.remove("payment-mobile-fixed-menu-btn");
+        el.style.top = "";
+      });
+      if (!self.isMobileView) return;
+      var stickyHead = self.$el.querySelector(".payment-mobile-sticky-head");
+      var dotsIcon =
+        self.$el.querySelector(".mdi-dots-vertical") ||
+        self.$el.querySelector(".mdi-dots-horizontal");
+      if (stickyHead) {
+        var topOffset = 64;
+        var tabsEl =
+          document.querySelector(".v-tabs") ||
+          document.querySelector(".v-tabs-bar") ||
+          document.querySelector(".v-slide-group");
+        if (tabsEl) {
+          var tabsRect = tabsEl.getBoundingClientRect();
+          topOffset = Math.max(0, tabsRect.bottom);
+        }
+        stickyHead.style.top = topOffset + "px";
+      }
+      if (!dotsIcon) return;
+      var dotsButton = dotsIcon.closest("button, .v-btn");
+      if (!dotsButton) return;
+      dotsButton.classList.add("payment-mobile-fixed-menu-btn");
+      if (stickyHead) {
+        var rect = stickyHead.getBoundingClientRect();
+        var btnSize = 34;
+        var top = Math.max(0, rect.top + (rect.height - btnSize) / 2);
+        dotsButton.style.top = top + "px";
+      }
+    },
+    syncMobileHeaderFix: function () {
+      var self = this;
+      window.requestAnimationFrame(function () {
+        self.applyMobileHeaderFix();
+      });
+    },
+    isSelectedRow: function (item) {
+      return !!(this.selected && item && this.selected.id === item.id);
+    },
+    selectMobileRow: function (item) {
+      this.onSelectedRow(item);
+    },
+    openItemsByRow: function (item) {
+      var self = this;
+      self.onSelectedRow(item);
+      self.$nextTick(function () {
+        self.dialogItem = true;
+      });
+    },
+    canApprove1: function (item) {
+      return !!(item && item.approved == 1);
+    },
+    canApprove2: function (item) {
+      return !!(item && item.approved == 3);
+    },
+    approveByRow: function (item) {
+      this.onSelectedRow(item);
+      this.approve();
+    },
+    rejectByRow: function (item) {
+      this.onSelectedRow(item);
+      this.reject();
+    },
+    openReport: function (item) {
+      var self = this;
+      var target = item || self.selected;
+      if (!target) return;
+      window.open(
+        "https://main.buanamultiteknik.com/api/report/payment/index?id=" +
+          target.id,
+      );
+    },
+    openReportWeb: function (item) {
+      var self = this;
+      var target = item || self.selected;
+      if (!target) return;
       window.open(
         "https://main.buanamultiteknik.com/api/report/payment/index?debughtml=true&id=" +
-          self.selected.id +
+          target.id +
           "&rand=" +
           randomId() +
           "&pagebreak=0",
       );
+    },
+    openReportWebByRow: function (item) {
+      this.onSelectedRow(item);
+      this.openReportWeb(item);
     },
     onSelectedRow: function (val) {
       var self = this;
@@ -487,7 +834,28 @@ module.exports = {
         return "Rejected Approval 2";
       }
     },
+    statusChipColor: function (approved) {
+      if (approved == 0) return "#f5e699";
+      if (approved == -1 || approved == -2) return "#f88686";
+      if (approved == 1 || approved == 2 || approved == 3 || approved == 4)
+        return "#ffcc99";
+      return "#e0e0e0";
+    },
   },
-  mounted: function () {},
+  mounted: function () {
+    var self = this;
+    window.addEventListener("resize", self.syncMobileHeaderFix);
+    window.addEventListener("scroll", self.syncMobileHeaderFix, {
+      passive: true,
+    });
+    this.syncMobileHeaderFix();
+  },
+  updated: function () {
+    this.syncMobileHeaderFix();
+  },
+  beforeDestroy: function () {
+    window.removeEventListener("resize", this.syncMobileHeaderFix);
+    window.removeEventListener("scroll", this.syncMobileHeaderFix);
+  },
 };
 </script>
