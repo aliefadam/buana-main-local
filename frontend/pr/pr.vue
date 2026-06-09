@@ -225,6 +225,14 @@
           @click="dialogPart = true"
           >Parts</v-btn
         >
+        <v-btn
+          small
+          color="primary"
+          outlined
+          :disabled="selected == false || subledgerReviseLoading"
+          @click="openSubledgerRevise"
+          >Subledger Revise</v-btn
+        >
         <!-- <v-btn small color="primary" outlined :disabled="selected == false" v-if="history" @click="dialogFile=true">Upload Print</v-btn> -->
         <v-btn
           small
@@ -538,6 +546,206 @@
       ></pr-notes>
     </v-action-dialog>
     <v-action-dialog
+      :actions="false"
+      v-model="dialogSubledgerRevise"
+      title="Subledger Revise"
+      min-height="75%"
+      fullscreen
+    >
+      <div
+        style="
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          min-height: 100%;
+          background: #f5f7fb;
+        "
+      >
+        <v-alert dense text color="info" v-if="subledgerReviseLoading">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            "
+          >
+            <v-progress-circular
+              indeterminate
+              color="info"
+              size="18"
+              width="2"
+            ></v-progress-circular>
+            <span>Loading part dan subledger...</span>
+          </div>
+        </v-alert>
+
+        <v-alert
+          dense
+          text
+          color="warning"
+          v-else-if="subledgerReviseGroups.length === 0"
+        >
+          Data part / subledger untuk PR ini belum ada.
+        </v-alert>
+
+        <v-card v-for="part in subledgerReviseGroups" :key="part.id" outlined>
+          <div
+            style="
+              padding: 16px;
+              border-bottom: 1px solid #e0e0e0;
+              background: #eef3ff;
+            "
+          >
+            <div style="font-size: 12px; font-weight: bold; color: #4b5563">
+              PART
+            </div>
+            <div style="margin-top: 8px; font-size: 16px; font-weight: bold">
+              {{ part.item_name || part.item_no || "Part" }}
+            </div>
+            <div style="margin-top: 4px; color: #4b5563">
+              <span>Item No:</span> {{ part.item_no || "-" }}
+              <span style="margin-left: 16px">Order:</span>
+              {{ part.order_no || "-" }}
+            </div>
+            <div
+              v-if="part.notes"
+              style="margin-top: 8px; color: #4b5563; white-space: pre-wrap"
+            >
+              {{ part.notes }}
+            </div>
+          </div>
+
+          <div
+            style="
+              padding: 16px;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            "
+          >
+            <v-card
+              v-for="subledger in part.subledgers"
+              :key="subledger.id"
+              outlined
+            >
+              <div
+                style="
+                  padding: 16px;
+                  display: flex;
+                  gap: 24px;
+                  align-items: flex-start;
+                  justify-content: space-between;
+                  flex-wrap: wrap;
+                "
+              >
+                <div style="flex: 1 1 720px; min-width: 280px">
+                  <div
+                    style="font-size: 12px; font-weight: bold; color: #4b5563"
+                  >
+                    SUBLEDGER
+                  </div>
+                  <div style="margin-top: 8px; font-weight: bold">
+                    {{ subledger.description || "-" }}
+                  </div>
+
+                  <div
+                    style="
+                      margin-top: 12px;
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                      gap: 10px 20px;
+                      color: #4b5563;
+                    "
+                  >
+                    <div><span>Qty:</span> {{ subledger.qty || 0 }}</div>
+                    <div>
+                      <span>Allocation:</span> {{ subledger.allocation || "-" }}
+                    </div>
+                    <div>
+                      <span>Currency:</span> {{ subledger.currency || "IDR" }}
+                    </div>
+                    <div>
+                      <span>Unit Price:</span>
+                      {{ formatMoney(subledger.unit_price, subledger.currency) }}
+                    </div>
+                    <div>
+                      <span>Exchange Rate:</span>
+                      {{ subledger.exchange_rate || "-" }}
+                    </div>
+                    <div>
+                      <span>Year Budget:</span>
+                      {{ subledger.year_budget || "-" }}
+                    </div>
+                    <div style="grid-column: 1 / -1">
+                      <span>Project:</span>
+                      {{
+                        [subledger.project_no, subledger.project_name]
+                          .filter(Boolean)
+                          .join(" - ") || "-"
+                      }}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    flex: 0 0 auto;
+                    min-width: 180px;
+                    display: flex;
+                    justify-content: flex-end;
+                  "
+                >
+                  <v-btn
+                    small
+                    color="primary"
+                    outlined
+                    @click="openEditAllocation(subledger)"
+                  >
+                    Edit Budget Allocation
+                  </v-btn>
+                </div>
+              </div>
+            </v-card>
+
+            <v-alert dense text color="grey" v-if="part.subledgers.length === 0">
+              Part ini belum punya subledger.
+            </v-alert>
+          </div>
+        </v-card>
+      </div>
+    </v-action-dialog>
+    <v-action-dialog
+      v-model="dialogEditAllocation"
+      title="Edit Allocation"
+      min-height="75%"
+      @save="saveEditAllocation"
+    >
+      <div
+        v-if="editAllocationLoading"
+        style="
+          min-height: 240px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 12px;
+        "
+      >
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="42"
+        ></v-progress-circular>
+        <div style="color: #4b5563">Loading allocation data...</div>
+      </div>
+      <v-autoform
+        v-else
+        v-model="editAllocationForm"
+        :valid="editAllocationValid"
+      ></v-autoform>
+    </v-action-dialog>
+    <v-action-dialog
       v-model="dialogNote"
       :title="titleNote"
       min-height="75%"
@@ -664,7 +872,9 @@ module.exports = {
       valid: false,
       dialogFile: false,
       dialogUploadApproval: false,
+      dialogEditAllocation: false,
       validUploadApproval: false,
+      editAllocationValid: false,
       formFile: [
         {
           text: "File",
@@ -681,11 +891,283 @@ module.exports = {
           required: true,
         },
       ],
+      editAllocationForm: [
+        {
+          text: "Type",
+          value: "project_type",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: true,
+          required: true,
+          form: true,
+          filter: false,
+          groupable: false,
+          clearable: true,
+          data_value: ["Project", "Operational", "Persediaan"],
+          input: function (val) {
+            var self = App.page();
+            self.handleEditAllocationTypeChange(val.data);
+          },
+        },
+        {
+          text: "Department",
+          value: "dept_id",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: true,
+          required: true,
+          form: false,
+          filter: false,
+          groupable: false,
+          clearable: true,
+          url: App.url + "bom/department",
+          searchby: ["id", "dept_name"],
+          formatter: ["id", "dept_name"],
+          alias: "dept_name",
+          options: {
+            filter: {},
+            filterType: {},
+            filterCondition: {
+              id: "or",
+              dept_name: "or",
+            },
+          },
+          paging: true,
+          page: "1",
+          limit: "10",
+          input: function (val) {
+            var self = App.page();
+            self.onEditAllocationDepartmentChange(val.data);
+          },
+        },
+        {
+          text: "Type Department",
+          value: "type_operational_id",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: true,
+          required: true,
+          form: false,
+          filter: false,
+          groupable: false,
+          clearable: true,
+          url: App.url + "bom/type",
+          searchby: ["id", "name"],
+          formatter: ["id", "name"],
+          alias: "type_operational",
+          options: {
+            filter: {},
+            filterType: {},
+            filterCondition: {
+              id: "or",
+              name: "or",
+            },
+          },
+          paging: true,
+          page: "1",
+          limit: "10",
+          input: function (val) {
+            var self = App.page();
+            self.onEditAllocationTypeDepartmentChange(val.data);
+          },
+        },
+        {
+          text: "Sub Type Department",
+          value: "sub_type_operational_id",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: true,
+          required: true,
+          form: false,
+          filter: false,
+          groupable: false,
+          clearable: true,
+          url: App.url + "bom/subtype",
+          searchby: ["id", "name"],
+          formatter: ["id", "name"],
+          alias: "sub_type_operational",
+          options: {
+            filter: {},
+            filterType: {},
+            filterCondition: {
+              id: "or",
+              name: "or",
+            },
+          },
+          paging: true,
+          page: "1",
+          limit: "10",
+          input: function () {
+            var self = App.page();
+            self.refreshEditAllocationRemainingBudget();
+          },
+        },
+        {
+          text: "Project No",
+          value: "project_id",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: true,
+          required: true,
+          form: false,
+          filter: false,
+          groupable: false,
+          clearable: true,
+          url: App.url + "project/project",
+          searchby: ["full"],
+          pk: "id",
+          formatter: function (val) {
+            return {
+              value: val.id,
+              text: val.full,
+              category_item: val.category,
+            };
+          },
+          alias: "project_no",
+          options: {
+            filter: {},
+            filterType: {},
+            filterCondition: {},
+            category_item: true,
+          },
+          paging: true,
+          page: "1",
+          limit: "10",
+          input: function (data) {
+            var self = App.page();
+            if (data.data) {
+              self.editAllocationObj.budget_id.options.filter.project_id =
+                data.data;
+              self.editAllocationObj.budget_id.data = null;
+              self.editAllocationObj.budget_id.update = null;
+            } else {
+              self.editAllocationObj.budget_id.options.filter.project_id = -1;
+              self.editAllocationObj.budget_id.data = null;
+              self.editAllocationObj.budget_id.update = null;
+            }
+            self.resetEditAllocationRemainingBudget();
+            self.editAllocationForm = App.updateObject(self.editAllocationForm);
+          },
+        },
+        {
+          text: "Budget",
+          value: "budget_id",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "list",
+          disabled: false,
+          visible: true,
+          required: true,
+          form: false,
+          filter: false,
+          groupable: false,
+          clearable: true,
+          url: App.url + "budget/budget",
+          searchby: ["budget_name"],
+          formatter: ["id", "budget_name"],
+          pk: "id",
+          alias: "budget_name",
+          options: {
+            filter: {
+              project_id: -1,
+            },
+            filterType: {},
+            filterCondition: {
+              project_id: "and",
+              budget_name: "or",
+            },
+          },
+          paging: true,
+          page: "1",
+          limit: "10",
+          input: function () {
+            var self = App.page();
+            self.refreshEditAllocationRemainingBudget();
+          },
+        },
+        {
+          text: "",
+          value: "remaining_budget",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "varchar",
+          disabled: true,
+          visible: true,
+          required: false,
+          form: false,
+          filter: false,
+          groupable: false,
+          readonly: true,
+        },
+        {
+          text: "Total Harga",
+          value: "total_harga",
+          align: "start",
+          sortable: false,
+          filterable: false,
+          divider: false,
+          class: "",
+          width: "auto",
+          type: "varchar",
+          disabled: true,
+          visible: true,
+          required: false,
+          form: false,
+          filter: false,
+          groupable: false,
+          readonly: true,
+        },
+      ],
       processData: {},
       dialogNote: false,
       dialogNotes: false,
+      dialogSubledgerRevise: false,
       dialogRevise: false,
       dialogCancel: false,
+      subledgerReviseLoading: false,
+      subledgerReviseGroups: [],
+      editAllocationLoading: false,
+      editAllocationTarget: null,
+      editAllocationRemainingBudgetValue: null,
+      editAllocationTotalHargaValue: null,
       action: "",
       askapproval_notes: "",
       approval_note: "",
@@ -1865,6 +2347,15 @@ module.exports = {
       });
       return tmp;
     },
+    editAllocationObj: function () {
+      var tmp = {},
+        self = this;
+      Object.keys(self.editAllocationForm).map((key) => {
+        var val = self.editAllocationForm[key];
+        tmp[val.value] = val;
+      });
+      return tmp;
+    },
     allowRevisi: function () {
       var self = this;
 
@@ -2003,6 +2494,618 @@ module.exports = {
       self.isInViewport = !!isVisible;
       self.isInDom = !!e.target.isConnected;
     },
+    openSubledgerRevise: async function () {
+      var self = this;
+      if (!self.selected || !self.selected.id) return;
+      self.dialogSubledgerRevise = true;
+      await self.getSubledgerReviseData(self.selected.id);
+    },
+    getSubledgerReviseData: async function (prId) {
+      var self = this;
+      self.subledgerReviseLoading = true;
+      self.subledgerReviseGroups = [];
+      try {
+        var partRes = await axios.get(App.url + "bom/prpart", {
+          params: {
+            filter: {
+              pr_id: prId,
+            },
+            filterType: {},
+            sortBy: ["order_no", "id"],
+            sortDesc: [false, false],
+            limit: -1,
+          },
+        });
+        var parts =
+          partRes && partRes.data && Array.isArray(partRes.data.data)
+            ? partRes.data.data
+            : [];
+        var prPartIds = parts
+          .map(function (part) {
+            return part.id;
+          })
+          .filter(function (id) {
+            return id !== undefined && id !== null && id !== "";
+          });
+        var subledgers = [];
+
+        if (prPartIds.length > 0) {
+          var subledgerRes = await axios.get(App.url + "bom/prsubledger", {
+            params: {
+              filter: {
+                pr_part_id: prPartIds,
+              },
+              filterType: {
+                pr_part_id: "in",
+              },
+              limit: -1,
+            },
+          });
+          subledgers =
+            subledgerRes &&
+            subledgerRes.data &&
+            Array.isArray(subledgerRes.data.data)
+              ? subledgerRes.data.data
+              : [];
+        }
+
+        var subledgerMap = {};
+        subledgers.map(function (subledger) {
+          if (!subledgerMap[subledger.pr_part_id]) {
+            subledgerMap[subledger.pr_part_id] = [];
+          }
+          subledgerMap[subledger.pr_part_id].push(subledger);
+        });
+
+        self.subledgerReviseGroups = parts.map(function (part) {
+          return Object.assign({}, part, {
+            subledgers: subledgerMap[part.id] || [],
+          });
+        });
+      } catch (e) {
+        App.errorMsg();
+      }
+      self.subledgerReviseLoading = false;
+    },
+    resetEditAllocationRemainingBudget: function () {
+      var self = this;
+      self.editAllocationRemainingBudgetValue = null;
+      self.editAllocationObj.remaining_budget.form = false;
+      self.editAllocationObj.remaining_budget.data = null;
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+    },
+    resetEditAllocationTotalHarga: function () {
+      var self = this;
+      self.editAllocationTotalHargaValue = null;
+      self.editAllocationObj.total_harga.form = false;
+      self.editAllocationObj.total_harga.data = null;
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+    },
+    toEditAllocationNumber: function (value) {
+      if (value === null || value === undefined || value === "") return 0;
+      if (typeof value === "number") return value;
+      var normalized = String(value).replace(/,/g, "");
+      var parsed = parseFloat(normalized);
+      return isNaN(parsed) ? 0 : parsed;
+    },
+    applyEditAllocationTotalHarga: function () {
+      var self = this;
+      if (!self.editAllocationTarget) {
+        self.resetEditAllocationTotalHarga();
+        return 0;
+      }
+      var qty = self.toEditAllocationNumber(self.editAllocationTarget.qty);
+      var unitPrice = self.toEditAllocationNumber(
+        self.editAllocationTarget.unit_price,
+      );
+      var currency = String(self.editAllocationTarget.currency || "IDR")
+        .trim()
+        .toUpperCase();
+      var exchangeRate = self.toEditAllocationNumber(
+        self.editAllocationTarget.exchange_rate,
+      );
+      var effectiveRate = currency === "IDR" ? 1 : exchangeRate;
+      var totalHarga = qty * unitPrice * effectiveRate;
+      var formattedTotalHarga = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number(totalHarga || 0));
+      self.editAllocationTotalHargaValue = Number(totalHarga || 0);
+      self.editAllocationObj.total_harga.form = true;
+      self.editAllocationObj.total_harga.data = formattedTotalHarga;
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      return totalHarga;
+    },
+    validateEditAllocationRemainingBudget: function (projectType) {
+      var self = this;
+      var totalHarga = self.applyEditAllocationTotalHarga();
+      if (
+        self.editAllocationRemainingBudgetValue === null ||
+        self.editAllocationRemainingBudgetValue === undefined
+      ) {
+        App.errorMsg({
+          message: "Remaining Budget belum berhasil dimuat. Silakan cek allocation yang dipilih.",
+        });
+        return false;
+      }
+      if (self.editAllocationRemainingBudgetValue >= totalHarga) {
+        return true;
+      }
+      if (projectType === "Operational") {
+        App.errorMsg({ message: "Sisa Budget Operational Tidak Cukup" });
+        return false;
+      }
+      if (projectType === "Project") {
+        App.errorMsg({ message: "Sisa Budget Project Tidak Cukup" });
+        return false;
+      }
+      if (projectType === "Persediaan") {
+        App.errorMsg({ message: "Sisa Budget Persediaan Tidak Cukup" });
+        return false;
+      }
+      App.errorMsg({ message: "Sisa Budget Tidak Cukup" });
+      return false;
+    },
+    setEditAllocationRemainingBudgetMessage: function (message, isError) {
+      var self = this;
+      if (isError) {
+        self.editAllocationRemainingBudgetValue = null;
+      }
+      self.editAllocationObj.remaining_budget.form = true;
+      self.editAllocationObj.remaining_budget.data = message;
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+    },
+    applyEditAllocationRemainingBudget: function (remaining) {
+      var self = this;
+      var formattedRemaining = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number(remaining || 0));
+      self.editAllocationRemainingBudgetValue = Number(remaining || 0);
+      self.editAllocationObj.remaining_budget.form = true;
+      self.editAllocationObj.remaining_budget.data =
+        "Remaining Budget : " + formattedRemaining;
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+    },
+    fetchEditAllocationProjectRemainingBudget: function (projectId, budgetId) {
+      var self = this;
+      self.setEditAllocationRemainingBudgetMessage(
+        "Calculate Remaining Budget...",
+        false,
+      );
+      return axios
+        .get(
+          "https://panel.buanamultiteknik.com/api/budget/project-budget/index",
+          {
+            params: {
+              project_id: projectId,
+              budget_id: budgetId,
+            },
+          },
+        )
+        .then(function (response) {
+          var remaining = response?.data?.budget?.remaining;
+          if (remaining === undefined || remaining === null) {
+            self.setEditAllocationRemainingBudgetMessage(
+              "Error : Failed to load remaining budget",
+              true,
+            );
+            return;
+          }
+          self.applyEditAllocationRemainingBudget(remaining);
+        })
+        .catch(function () {
+          self.setEditAllocationRemainingBudgetMessage(
+            "Error : Failed to load remaining budget",
+            true,
+          );
+        });
+    },
+    fetchEditAllocationOperationalRemainingBudget: function (
+      deptId,
+      typeOperationalId,
+      subTypeOperationalId,
+    ) {
+      var self = this;
+      self.setEditAllocationRemainingBudgetMessage(
+        "Calculate Remaining Budget...",
+        false,
+      );
+      return axios
+        .get(
+          "https://panel.buanamultiteknik.com/api/budget/operational-budget/index",
+          {
+            params: {
+              dept_id: deptId,
+              type_operational_id: typeOperationalId,
+              sub_type_operational_id: subTypeOperationalId,
+            },
+          },
+        )
+        .then(function (response) {
+          var remaining = response?.data?.budget?.remaining;
+          if (remaining === undefined || remaining === null) {
+            self.setEditAllocationRemainingBudgetMessage(
+              "Error : Failed to load remaining budget",
+              true,
+            );
+            return;
+          }
+          self.applyEditAllocationRemainingBudget(remaining);
+        })
+        .catch(function () {
+          self.setEditAllocationRemainingBudgetMessage(
+            "Error : Failed to load remaining budget",
+            true,
+          );
+        });
+    },
+    fetchEditAllocationPersediaanRemainingBudget: function () {
+      var self = this;
+      self.setEditAllocationRemainingBudgetMessage(
+        "Calculate Remaining Budget...",
+        false,
+      );
+      return axios
+        .get("https://panel.buanamultiteknik.com/api/budget/persediaan/summary")
+        .then(function (response) {
+          var remaining =
+            response?.data?.budget?.remaining ??
+            response?.data?.remaining ??
+            response?.data?.data?.remaining ??
+            response?.data?.summary?.remaining;
+          if (remaining === undefined || remaining === null) {
+            self.setEditAllocationRemainingBudgetMessage(
+              "Error : Failed to load remaining budget",
+              true,
+            );
+            return;
+          }
+          self.applyEditAllocationRemainingBudget(remaining);
+        })
+        .catch(function () {
+          self.setEditAllocationRemainingBudgetMessage(
+            "Error : Failed to load remaining budget",
+            true,
+          );
+        });
+    },
+    refreshEditAllocationRemainingBudget: function () {
+      var self = this;
+      var projectType = self.editAllocationObj.project_type.data;
+      if (projectType === "Project") {
+        var projectId = self.editAllocationObj.project_id.data;
+        var budgetId = self.editAllocationObj.budget_id.data;
+        if (projectId && budgetId) {
+          return self.fetchEditAllocationProjectRemainingBudget(
+            projectId,
+            budgetId,
+          );
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+        return Promise.resolve();
+      }
+      if (projectType === "Operational") {
+        var deptId = self.editAllocationObj.dept_id.data;
+        var typeOperationalId = self.editAllocationObj.type_operational_id.data;
+        var subTypeOperationalId =
+          self.editAllocationObj.sub_type_operational_id.data;
+        if (deptId && typeOperationalId && subTypeOperationalId) {
+          return self.fetchEditAllocationOperationalRemainingBudget(
+            deptId,
+            typeOperationalId,
+            subTypeOperationalId,
+          );
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+        return Promise.resolve();
+      }
+      if (projectType === "Persediaan") {
+        return self.fetchEditAllocationPersediaanRemainingBudget();
+      }
+      self.resetEditAllocationRemainingBudget();
+      return Promise.resolve();
+    },
+    handleEditAllocationTypeChange: function (projectType) {
+      var self = this;
+      self.editAllocationObj.project_id.form = false;
+      self.editAllocationObj.budget_id.form = false;
+      self.editAllocationObj.dept_id.form = false;
+      self.editAllocationObj.type_operational_id.form = false;
+      self.editAllocationObj.sub_type_operational_id.form = false;
+
+      if (projectType === "Project") {
+        self.editAllocationObj.project_id.form = true;
+        self.editAllocationObj.budget_id.form = true;
+      } else if (projectType === "Operational") {
+        self.editAllocationObj.dept_id.form = true;
+        self.editAllocationObj.type_operational_id.form = true;
+        self.editAllocationObj.sub_type_operational_id.form = true;
+      } else if (projectType === "Persediaan") {
+        self.editAllocationObj.project_id.data = null;
+        self.editAllocationObj.project_id.update = null;
+        self.editAllocationObj.budget_id.data = null;
+        self.editAllocationObj.budget_id.update = null;
+        self.editAllocationObj.dept_id.data = null;
+        self.editAllocationObj.dept_id.update = null;
+        self.editAllocationObj.type_operational_id.data = null;
+        self.editAllocationObj.type_operational_id.update = null;
+        self.editAllocationObj.sub_type_operational_id.data = null;
+        self.editAllocationObj.sub_type_operational_id.update = null;
+      }
+
+      if (projectType !== "Project") {
+        self.editAllocationObj.project_id.data = null;
+        self.editAllocationObj.project_id.update = null;
+        self.editAllocationObj.budget_id.data = null;
+        self.editAllocationObj.budget_id.update = null;
+        self.editAllocationObj.budget_id.options.filter.project_id = -1;
+      }
+      if (projectType !== "Operational") {
+        self.editAllocationObj.dept_id.data = null;
+        self.editAllocationObj.dept_id.update = null;
+        self.editAllocationObj.type_operational_id.data = null;
+        self.editAllocationObj.type_operational_id.update = null;
+        self.editAllocationObj.sub_type_operational_id.data = null;
+        self.editAllocationObj.sub_type_operational_id.update = null;
+        delete self.editAllocationObj.type_operational_id.options.filter
+          .department_id;
+        delete self.editAllocationObj.sub_type_operational_id.options.filter
+          .department_id;
+        delete self.editAllocationObj.sub_type_operational_id.options.filter
+          .type_operational_id;
+      }
+
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationRemainingBudget();
+    },
+    onEditAllocationDepartmentChange: function (deptId) {
+      var self = this;
+      self.editAllocationObj.type_operational_id.data = null;
+      self.editAllocationObj.type_operational_id.update = null;
+      self.editAllocationObj.sub_type_operational_id.data = null;
+      self.editAllocationObj.sub_type_operational_id.update = null;
+      if (deptId) {
+        self.editAllocationObj.type_operational_id.options.filter.department_id =
+          deptId;
+        self.editAllocationObj.sub_type_operational_id.options.filter.department_id =
+          deptId;
+      } else {
+        delete self.editAllocationObj.type_operational_id.options.filter
+          .department_id;
+        delete self.editAllocationObj.sub_type_operational_id.options.filter
+          .department_id;
+      }
+      delete self.editAllocationObj.sub_type_operational_id.options.filter
+        .type_operational_id;
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationRemainingBudget();
+    },
+    onEditAllocationTypeDepartmentChange: function (typeOperationalId) {
+      var self = this;
+      self.editAllocationObj.sub_type_operational_id.data = null;
+      self.editAllocationObj.sub_type_operational_id.update = null;
+      if (typeOperationalId) {
+        self.editAllocationObj.sub_type_operational_id.options.filter.type_operational_id =
+          typeOperationalId;
+      } else {
+        delete self.editAllocationObj.sub_type_operational_id.options.filter
+          .type_operational_id;
+      }
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationRemainingBudget();
+    },
+    openEditAllocation: async function (subledger) {
+      var self = this;
+      self.editAllocationTarget = subledger;
+      self.editAllocationLoading = true;
+      self.dialogEditAllocation = true;
+      await self.$nextTick();
+
+      self.editAllocationObj.project_id.data_value = subledger.project_id
+        ? [
+            {
+              value: subledger.project_id,
+              text:
+                [subledger.project_no, subledger.project_name]
+                  .filter(Boolean)
+                  .join(" - ") || subledger.project_no || "-",
+              category_item: subledger.categoryitem_name || null,
+            },
+          ]
+        : [];
+      self.editAllocationObj.budget_id.data_value = subledger.budget_id
+        ? [
+            {
+              value: subledger.budget_id,
+              text: subledger.budget_name || "-",
+            },
+          ]
+        : [];
+      self.editAllocationObj.dept_id.data_value = subledger.dept_id
+        ? [
+            {
+              value: subledger.dept_id,
+              text: subledger.dept_name || "-",
+            },
+          ]
+        : [];
+      self.editAllocationObj.type_operational_id.data_value =
+        subledger.type_operational_id
+          ? [
+              {
+                value: subledger.type_operational_id,
+                text: subledger.type_operational || "-",
+              },
+            ]
+          : [];
+      self.editAllocationObj.sub_type_operational_id.data_value =
+        subledger.sub_type_operational_id
+          ? [
+              {
+                value: subledger.sub_type_operational_id,
+                text: subledger.sub_type_operational || "-",
+              },
+            ]
+          : [];
+
+      self.editAllocationObj.project_type.data = subledger.project_type || null;
+      self.editAllocationObj.project_type.update =
+        subledger.project_type || null;
+      self.editAllocationObj.project_id.data = subledger.project_id || null;
+      self.editAllocationObj.project_id.update = subledger.project_id || null;
+      self.editAllocationObj.budget_id.data = subledger.budget_id || null;
+      self.editAllocationObj.budget_id.update = subledger.budget_id || null;
+      self.editAllocationObj.dept_id.data = subledger.dept_id || null;
+      self.editAllocationObj.dept_id.update = subledger.dept_id || null;
+      self.editAllocationObj.type_operational_id.data =
+        subledger.type_operational_id || null;
+      self.editAllocationObj.type_operational_id.update =
+        subledger.type_operational_id || null;
+      self.editAllocationObj.sub_type_operational_id.data =
+        subledger.sub_type_operational_id || null;
+      self.editAllocationObj.sub_type_operational_id.update =
+        subledger.sub_type_operational_id || null;
+      self.editAllocationObj.remaining_budget.data = null;
+      self.editAllocationObj.remaining_budget.form = false;
+      self.editAllocationObj.total_harga.data = null;
+      self.editAllocationObj.total_harga.form = false;
+      self.editAllocationObj.budget_id.options.filter.project_id =
+        subledger.project_id || -1;
+
+      if (subledger.dept_id) {
+        self.editAllocationObj.type_operational_id.options.filter.department_id =
+          subledger.dept_id;
+        self.editAllocationObj.sub_type_operational_id.options.filter.department_id =
+          subledger.dept_id;
+      } else {
+        delete self.editAllocationObj.type_operational_id.options.filter
+          .department_id;
+        delete self.editAllocationObj.sub_type_operational_id.options.filter
+          .department_id;
+      }
+      if (subledger.type_operational_id) {
+        self.editAllocationObj.sub_type_operational_id.options.filter.type_operational_id =
+          subledger.type_operational_id;
+      } else {
+        delete self.editAllocationObj.sub_type_operational_id.options.filter
+          .type_operational_id;
+      }
+
+      self.handleEditAllocationTypeChange(subledger.project_type || null);
+
+      if (subledger.project_type === "Project") {
+        self.editAllocationObj.project_id.data = subledger.project_id || null;
+        self.editAllocationObj.project_id.update = subledger.project_id || null;
+        self.editAllocationObj.budget_id.data = subledger.budget_id || null;
+        self.editAllocationObj.budget_id.update = subledger.budget_id || null;
+      }
+      if (subledger.project_type === "Operational") {
+        self.editAllocationObj.dept_id.data = subledger.dept_id || null;
+        self.editAllocationObj.dept_id.update = subledger.dept_id || null;
+        self.editAllocationObj.type_operational_id.data =
+          subledger.type_operational_id || null;
+        self.editAllocationObj.type_operational_id.update =
+          subledger.type_operational_id || null;
+        self.editAllocationObj.sub_type_operational_id.data =
+          subledger.sub_type_operational_id || null;
+        self.editAllocationObj.sub_type_operational_id.update =
+          subledger.sub_type_operational_id || null;
+      }
+      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.applyEditAllocationTotalHarga();
+      try {
+        await self.refreshEditAllocationRemainingBudget();
+      } finally {
+        self.editAllocationLoading = false;
+      }
+    },
+    saveEditAllocation: async function () {
+      var self = this;
+      if (!self.editAllocationTarget) return;
+      var payload = {
+        pk: self.editAllocationTarget.id,
+        pr_part_id: self.editAllocationTarget.pr_part_id,
+        description: self.editAllocationTarget.description,
+        qty: self.editAllocationTarget.qty,
+        allocation: self.editAllocationTarget.allocation,
+        unit_price: self.editAllocationTarget.unit_price,
+        currency: self.editAllocationTarget.currency,
+        exchange_rate: self.editAllocationTarget.exchange_rate,
+        rate_date: self.editAllocationTarget.rate_date,
+        requirement: self.editAllocationTarget.requirement || "-",
+        year_budget:
+          self.editAllocationTarget.year_budget ||
+          new Date().getFullYear().toString(),
+        project_type: self.editAllocationObj.project_type.data,
+        project_id:
+          self.editAllocationObj.project_type.data === "Project"
+            ? self.editAllocationObj.project_id.data
+            : "",
+        budget_id:
+          self.editAllocationObj.project_type.data === "Project"
+            ? self.editAllocationObj.budget_id.data
+            : "",
+        dept_id:
+          self.editAllocationObj.project_type.data === "Operational"
+            ? self.editAllocationObj.dept_id.data
+            : "",
+        type_operational_id:
+          self.editAllocationObj.project_type.data === "Operational"
+            ? self.editAllocationObj.type_operational_id.data
+            : "",
+        sub_type_operational_id:
+          self.editAllocationObj.project_type.data === "Operational"
+            ? self.editAllocationObj.sub_type_operational_id.data
+            : "",
+        category_item_id: self.editAllocationTarget.category_item_id,
+        alokasi_pembelian: self.editAllocationTarget.alokasi_pembelian,
+        rnd_id: self.editAllocationTarget.rnd_id,
+      };
+
+      var projectType = payload.project_type;
+      if (!projectType) {
+        App.errorMsg({ message: "Type is required" });
+        return;
+      }
+      if (projectType === "Project" && (!payload.project_id || !payload.budget_id)) {
+        App.errorMsg({ message: "Project No dan Budget wajib diisi" });
+        return;
+      }
+      if (
+        projectType === "Operational" &&
+        (!payload.dept_id ||
+          !payload.type_operational_id ||
+          !payload.sub_type_operational_id)
+      ) {
+        App.errorMsg({
+          message: "Department, Type Department, dan Sub Type Department wajib diisi",
+        });
+        return;
+      }
+      if (!self.validateEditAllocationRemainingBudget(projectType)) {
+        return;
+      }
+
+      try {
+        var res = await axios.put(App.url + "bom/prsubledger", payload);
+        if (!res.data.status) {
+          App.errorMsg(res.data);
+          return;
+        }
+        App.successMsg();
+        self.dialogEditAllocation = false;
+        await self.getSubledgerReviseData(self.selected.id);
+      } catch (e) {
+        App.errorMsg();
+      }
+    },
     approve: async function () {
       var self = this;
       var c = confirm("Are you sure want to Approve this PR?");
@@ -2140,6 +3243,20 @@ module.exports = {
       );
 
       //this.renderPDF(doc, this.selected.attachment)
+    },
+    formatMoney: function (value, currency) {
+      var amount = Number(value || 0);
+      if (!amount) return "0";
+      try {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: currency || "IDR",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      } catch (e) {
+        return amount.toLocaleString("en-US");
+      }
     },
     async getData() {
       try {

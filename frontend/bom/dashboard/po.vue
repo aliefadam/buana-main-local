@@ -2838,15 +2838,15 @@ module.exports = {
       }
 
       return [
-        "Subject PR : " + (item.pr_subject || "-"),
-        "Allocation : " + allocationText,
-        "Supplier/Vendor : " + (item.supplier_name || "-"),
-        "Brand : " + (item.brand || "-"),
+        "Subject : " + (item.pr_subject || "-"),
         "Jenis Barang : " + (item.jenis_barang || "-"),
+        "Manufacture/Brand : " + (item.brand || "-"),
+        "Supplier/Vendor : " + (item.supplier_name || "-"),
+        "Delivery Time : -",
+        "Allocation : " + allocationText,
         "Total price : " +
           self.formatSummaryCurrency(item.currency, item.grand_total),
         "Remaining Budget : " + remainingBudgetText,
-        "Delivery Time : -",
       ].join("\n");
     },
     fetchRemainingBudgetItems: async function (poId, options) {
