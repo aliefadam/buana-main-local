@@ -156,7 +156,11 @@
       </template>
     </v-template>
     <v-action-dialog @save="saveFile" title="Payment Info" v-model="dialogFile">
-      <v-autoform v-model="formFile" :valid="valid"></v-autoform>
+      <v-autoform
+        :key="formFileKey"
+        v-model="formFile"
+        :valid="valid"
+      ></v-autoform>
     </v-action-dialog>
   </v-container>
 </template>
@@ -263,6 +267,7 @@ module.exports = {
     return {
       valid: false,
       dialogFile: false,
+      formFileKey: 0,
       formData: {
         invoice_id: null,
         credit_note_id: null,
@@ -1236,6 +1241,7 @@ module.exports = {
       self.selected = item; // set manual supaya sinkron
       self.formData.invoice_id = self.toNumberSafe(item.id || item.invoice_id);
       self.setEditFormData(item);
+      self.formFileKey += 1;
 
       console.log(item);
       // cari field credit_note
@@ -1339,6 +1345,7 @@ module.exports = {
       } else {
         App.successMsg();
         self.dialogFile = false;
+        self.formFileKey += 1;
         if (self.$refs.template && self.$refs.template.getItems) {
           self.$refs.template.getItems();
         }
