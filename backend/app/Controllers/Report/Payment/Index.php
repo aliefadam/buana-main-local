@@ -177,8 +177,8 @@ public function test2(){
 
 // 		if($json["id"] == 109 && !isset($json["nocache"]))
 		if($json["id"] == 174 && !isset($json["nocache"]))	{  
-			return "<a href='https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf'>report</a><script>
-			window.location = 'https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf';
+			return "<a href='https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf?v=".$uniqid."'>report</a><script>
+			window.location = 'https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf?v=".$uniqid."';
 			</script>";
 			exit();
 		}
@@ -291,7 +291,7 @@ public function test2(){
 			$approved = '';
 			$invoice = [];
 			$totalCurrencyAsing = 0;
-			$currencyAsing = "";
+			$currencyAsing = "Rp";
 			$items = [];
 			$notPetty = [];
 			$petty = [];
@@ -299,6 +299,7 @@ public function test2(){
 			$totalPettyCash = 0;
 			$totalNonPettyCash = 0;
 			$nonPettyCashCurrencyAsing = 0;
+			$hasCurrencyAsing = false;
 			try {
 				foreach ($data["data"] as $key => $value) {
 				    if (!is_object($value)) {
@@ -321,7 +322,11 @@ public function test2(){
                         $creditNoteMap[$value->invoice_id] = [
                             "invoice_no" => $value->invoice_no,
                             "credit_note_no" => $value->credit_note_no ?? "",
+                            "credit_note_reference" => $value->credit_note_reference ?? "",
+                            "credit_note_amount_raw" => $cnAmountRaw,
                             "credit_note_amount" => $cnAmountIdr,
+                            "credit_note_currency" => $curCode,
+                            "use_credit_note" => (int)($value->use_credit_note ?? 0),
                         ];
                     }
 
@@ -412,10 +417,12 @@ public function test2(){
 					if (!is_array($c)) { $c = []; }
 					if (!is_array($cur)) { $cur = []; }
 					$curKey = $value->currency ?? '-';
-					$currencyAsing = $c[$curKey] ?? ($c['-'] ?? 'Rp');
+					if ($curKey !== 'IDR') {
+						$hasCurrencyAsing = true;
+						$currencyAsing = $c[$curKey] ?? $curKey;
+					}
 					$data["data"][$key]->c = $c[$curKey] ?? ($c['-'] ?? 'Rp');
 					$data["data"][$key]->cur = $cur[$curKey] ?? ($cur['-'] ?? 'Rupiah');
-					$data["currency"] = $curKey != 'IDR';
 					$data["data"][$key]->payment_pct = $value->payment_pct + 0;
 					$cnAmountRaw = (float)($value->credit_note_amount ?? 0);
 				    $cnAmountIdr = $cnAmountRaw;
@@ -428,12 +435,15 @@ public function test2(){
 					$data["data"][$key]->credit_note_amount_src_fmt = number_format($cnAmountRaw,2,',','.');
 					$data["data"][$key]->credit_note_amount_idr_fmt = number_format($cnAmountIdr,2,',','.');
 					$data["data"][$key]->credit_note_no = $value->credit_note_no ?? '';
+					$data["data"][$key]->credit_note_reference = $value->credit_note_reference ?? '';
 					
-    				$data["data"][$key]->credit_note_label = $data["data"][$key]->credit_note_no !== '' ? "Reference : ".$data["data"][$key]->credit_note_reference.", ": "";
+    				$data["data"][$key]->credit_note_label = $data["data"][$key]->credit_note_no !== '' ? "Credit Note : ".$data["data"][$key]->credit_note_no.", Reference No : ".$data["data"][$key]->credit_note_reference.", ": "";
 						
 					$data["data"][$key]->credit_note_currency = $curCode;
 					
-				    $data["data"][$key]->credit_note_display = "Credit Note. ".$data["data"][$key]->credit_note_label."Amount: ".$curCode." ".$data["data"][$key]->credit_note_amount_src_fmt." | Rp. ".$data["data"][$key]->credit_note_amount_idr_fmt;
+				    $data["data"][$key]->credit_note_display = $data["data"][$key]->credit_note_label."Amount : ".$curCode." ".$data["data"][$key]->credit_note_amount_src_fmt;
+				    $data["data"][$key]->has_credit_note_detail = (int)($value->use_credit_note ?? 0) === 1 && $cnAmountRaw != 0;
+				    $data["data"][$key]->credit_note_detail = "Credit Note : ".$data["data"][$key]->credit_note_no."<br/>Reference No : ".$data["data"][$key]->credit_note_reference."<br/>Amount : ".$curCode." ".$data["data"][$key]->credit_note_amount_src_fmt;
 
 						
 					$data["data"][$key]->grand_total_price = number_format($value->grand_total_price,2,',','.');//formater($value->grand_total_price, $c);// \money_format($value->grand_total_price);
@@ -470,13 +480,26 @@ public function test2(){
 				$pettyCashCurrencyAsing = (int)$pettyCashCurrencyAsing;
 			}
 			$creditNoteInvoices = array_values(array_filter($creditNoteMap, function($val){
-				return (float)($val["credit_note_amount"] ?? 0) != 0;
+				return (int)($val["use_credit_note"] ?? 0) === 1 && (float)($val["credit_note_amount_raw"] ?? 0) != 0;
 			}));
+			$creditNoteDetails = array_map(function($val) {
+				$amountRaw = (float)($val["credit_note_amount_raw"] ?? 0);
+				$currency = $val["credit_note_currency"] ?? 'IDR';
+				$amountLabel = $currency." ".number_format($amountRaw, 2, ',', '.');
+				return [
+					"credit_note_no" => $val["credit_note_no"] ?? "",
+					"credit_note_reference" => $val["credit_note_reference"] ?? "",
+					"credit_note_amount" => $amountLabel,
+					"credit_note_amount_raw" => number_format($amountRaw, 2, ',', '.'),
+					"credit_note_currency" => $currency,
+					"display" => "Credit Note : ".($val["credit_note_no"] ?? "")."<br/>Reference No : ".($val["credit_note_reference"] ?? "")."<br/>Amount : ".$amountLabel,
+				];
+			}, $creditNoteInvoices);
 			$creditNoteTotal = 0;
 			foreach ($creditNoteInvoices as $val) {
 				$creditNoteTotal += (float)($val["credit_note_amount"] ?? 0);
 			}
-			$hasCurrencyAsing = $data["currency"] ?? false;
+			$data["currency"] = $hasCurrencyAsing;
 			$noCurrencyAsing = !$hasCurrencyAsing;
 			$creditNoteTotalIdr = $creditNoteTotal;
 			$hasCreditNote = ((float)$creditNoteTotalIdr) != 0;
@@ -526,6 +549,7 @@ public function test2(){
 				'totalNonPettyCash'=>number_format($totalNonPettyCash,2,',','.'),
 						'nonPettyCashCurrencyAsing'=>number_format($nonPettyCashCurrencyAsing,2,',','.'),
 				'credit_note_invoices' => json_decode(json_encode($creditNoteInvoices), true),
+				'credit_note_details' => json_decode(json_encode($creditNoteDetails), true),
 			];
 
 			$items = json_decode(json_encode($data["data"]), true);
@@ -937,8 +961,8 @@ public function test2(){
 					unlink($value->path);
 				}
 			} */
-			return "<a href='https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf'>report</a><script>
-			window.location = 'https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf';
+			return "<a href='https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf?v=".$uniqid."'>report</a><script>
+			window.location = 'https://main.buanamultiteknik.com/api/download/full".$json["id"].".pdf?v=".$uniqid."';
 			</script>";
 
 			if(file_exists($path2)) // here is the problem
@@ -973,7 +997,7 @@ public function test2(){
 					, coalesce(po.exchange_rate, i.exchange_rate) as exchange_rate, s.approved1_date, s.approved1,s.credit_note, s.approved2, s.approved2_date, ms.name, 
 					coalesce(po.currency, ms.currency, 'IDR') as currency, ms.bank, ms.bank_account_no, ms.bank_account_name, i.id as invoice_id, i.notes, i.invoice_no, s.id, s.payment_no, 
 					s.payment_date, mi.item_no, mi.item_name, trim(i.invoice_doc_url) as invoice_doc_url, i.payment_pct, i.grand_total_price, 
-					i.credit_note_amount, cn.credit_no as credit_note_no, cn.reference_no as credit_note_reference,
+					i.use_credit_note, i.credit_note_amount, cn.credit_no as credit_note_no, cn.reference_no as credit_note_reference,
 					i.invoice_charge, i.invoice_reduction, i.petty_cash
 					from payment s 
 					left join payment_item p on p.payment_id = s.id
