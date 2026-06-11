@@ -193,11 +193,9 @@
                     </v-col> -->
         </v-row>
       </template>
-      <template v-slot:title-body v-if="$refs.template && !history">
-        <b>PR Active: </b> {{ $refs.template.itemsTotal }}
-      </template>
-      <template v-slot:title-body v-else>
-        <b>PR History: </b> {{ $refs.template.itemsTotal }}
+      <template v-slot:title-body>
+        <b>{{ history ? "PR History:" : "PR Active:" }}</b>
+        {{ $refs.template ? $refs.template.itemsTotal : 0 }}
       </template>
       <template v-slot:menu-after-filter>
         <v-btn
@@ -563,13 +561,7 @@
         "
       >
         <v-alert dense text color="info" v-if="subledgerReviseLoading">
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              gap: 10px;
-            "
-          >
+          <div style="display: flex; align-items: center; gap: 10px">
             <v-progress-circular
               indeterminate
               color="info"
@@ -653,7 +645,10 @@
                     style="
                       margin-top: 12px;
                       display: grid;
-                      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                      grid-template-columns: repeat(
+                        auto-fit,
+                        minmax(180px, 1fr)
+                      );
                       gap: 10px 20px;
                       color: #4b5563;
                     "
@@ -667,7 +662,9 @@
                     </div>
                     <div>
                       <span>Unit Price:</span>
-                      {{ formatMoney(subledger.unit_price, subledger.currency) }}
+                      {{
+                        formatMoney(subledger.unit_price, subledger.currency)
+                      }}
                     </div>
                     <div>
                       <span>Exchange Rate:</span>
@@ -708,7 +705,12 @@
               </div>
             </v-card>
 
-            <v-alert dense text color="grey" v-if="part.subledgers.length === 0">
+            <v-alert
+              dense
+              text
+              color="grey"
+              v-if="part.subledgers.length === 0"
+            >
               Part ini belum punya subledger.
             </v-alert>
           </div>
@@ -739,11 +741,125 @@
         ></v-progress-circular>
         <div style="color: #4b5563">Loading allocation data...</div>
       </div>
-      <v-autoform
+      <div
         v-else
-        v-model="editAllocationForm"
-        :valid="editAllocationValid"
-      ></v-autoform>
+        :key="editAllocationFormRenderKey"
+        style="display: flex; flex-direction: column; gap: 16px"
+      >
+        <v-autocomplete
+          :items="getEditAllocationAutocompleteItems('project_type')"
+          v-model="editAllocationObj.project_type.data"
+          label="Type"
+          item-text="text"
+          item-value="value"
+          no-filter
+          filled
+          clearable
+          required
+          @input="handleEditAllocationTypeChange"
+        ></v-autocomplete>
+
+        <v-autocomplete
+          v-if="editAllocationObj.project_id.form"
+          :items="getEditAllocationAutocompleteItems('project_id')"
+          v-model="editAllocationObj.project_id.data"
+          :search-input.sync="editAllocationSearch.project_id"
+          label="Project No"
+          item-text="text"
+          item-value="value"
+          no-filter
+          filled
+          clearable
+          required
+          @focus="fetchEditAllocationFieldOptions('project_id', editAllocationSearch.project_id)"
+          @update:search-input="onEditAllocationSearch('project_id', $event)"
+          @input="onEditAllocationProjectChange"
+        ></v-autocomplete>
+
+        <v-autocomplete
+          v-if="editAllocationObj.budget_id.form"
+          :items="getEditAllocationAutocompleteItems('budget_id')"
+          v-model="editAllocationObj.budget_id.data"
+          :search-input.sync="editAllocationSearch.budget_id"
+          label="Budget"
+          item-text="text"
+          item-value="value"
+          no-filter
+          filled
+          clearable
+          required
+          @focus="fetchEditAllocationFieldOptions('budget_id', editAllocationSearch.budget_id)"
+          @update:search-input="onEditAllocationSearch('budget_id', $event)"
+          @input="onEditAllocationBudgetChange"
+        ></v-autocomplete>
+
+        <v-autocomplete
+          v-if="editAllocationObj.dept_id.form"
+          :items="getEditAllocationAutocompleteItems('dept_id')"
+          v-model="editAllocationObj.dept_id.data"
+          :search-input.sync="editAllocationSearch.dept_id"
+          label="Department"
+          item-text="text"
+          item-value="value"
+          no-filter
+          filled
+          clearable
+          required
+          @focus="fetchEditAllocationFieldOptions('dept_id', editAllocationSearch.dept_id)"
+          @update:search-input="onEditAllocationSearch('dept_id', $event)"
+          @input="onEditAllocationDepartmentChange"
+        ></v-autocomplete>
+
+        <v-autocomplete
+          v-if="editAllocationObj.type_operational_id.form"
+          :items="getEditAllocationAutocompleteItems('type_operational_id')"
+          v-model="editAllocationObj.type_operational_id.data"
+          :search-input.sync="editAllocationSearch.type_operational_id"
+          label="Type Department"
+          item-text="text"
+          item-value="value"
+          no-filter
+          filled
+          clearable
+          required
+          @focus="fetchEditAllocationFieldOptions('type_operational_id', editAllocationSearch.type_operational_id)"
+          @update:search-input="onEditAllocationSearch('type_operational_id', $event)"
+          @input="onEditAllocationTypeDepartmentChange"
+        ></v-autocomplete>
+
+        <v-autocomplete
+          v-if="editAllocationObj.sub_type_operational_id.form"
+          :items="getEditAllocationAutocompleteItems('sub_type_operational_id')"
+          v-model="editAllocationObj.sub_type_operational_id.data"
+          :search-input.sync="editAllocationSearch.sub_type_operational_id"
+          label="Sub Type Department"
+          item-text="text"
+          item-value="value"
+          no-filter
+          filled
+          clearable
+          required
+          @focus="fetchEditAllocationFieldOptions('sub_type_operational_id', editAllocationSearch.sub_type_operational_id)"
+          @update:search-input="onEditAllocationSearch('sub_type_operational_id', $event)"
+          @input="onEditAllocationSubTypeDepartmentChange"
+        ></v-autocomplete>
+
+        <v-text-field
+          v-if="editAllocationObj.remaining_budget.form"
+          v-model="editAllocationObj.remaining_budget.data"
+          label="Remaining Budget"
+          filled
+          readonly
+        ></v-text-field>
+
+        <v-text-field
+          v-if="editAllocationObj.total_harga.form"
+          v-model="editAllocationObj.total_harga.data"
+          label="Total Harga"
+          filled
+          readonly
+        ></v-text-field>
+      </div>
     </v-action-dialog>
     <v-action-dialog
       v-model="dialogNote"
@@ -932,6 +1048,7 @@ module.exports = {
           filter: false,
           groupable: false,
           clearable: true,
+          data_value: [],
           url: App.url + "bom/department",
           searchby: ["id", "dept_name"],
           formatter: ["id", "dept_name"],
@@ -969,6 +1086,7 @@ module.exports = {
           filter: false,
           groupable: false,
           clearable: true,
+          data_value: [],
           url: App.url + "bom/type",
           searchby: ["id", "name"],
           formatter: ["id", "name"],
@@ -1006,6 +1124,7 @@ module.exports = {
           filter: false,
           groupable: false,
           clearable: true,
+          data_value: [],
           url: App.url + "bom/subtype",
           searchby: ["id", "name"],
           formatter: ["id", "name"],
@@ -1021,9 +1140,9 @@ module.exports = {
           paging: true,
           page: "1",
           limit: "10",
-          input: function () {
+          input: function (val) {
             var self = App.page();
-            self.refreshEditAllocationRemainingBudget();
+            self.onEditAllocationSubTypeDepartmentChange(val.data);
           },
         },
         {
@@ -1043,6 +1162,7 @@ module.exports = {
           filter: false,
           groupable: false,
           clearable: true,
+          data_value: [],
           url: App.url + "project/project",
           searchby: ["full"],
           pk: "id",
@@ -1065,18 +1185,7 @@ module.exports = {
           limit: "10",
           input: function (data) {
             var self = App.page();
-            if (data.data) {
-              self.editAllocationObj.budget_id.options.filter.project_id =
-                data.data;
-              self.editAllocationObj.budget_id.data = null;
-              self.editAllocationObj.budget_id.update = null;
-            } else {
-              self.editAllocationObj.budget_id.options.filter.project_id = -1;
-              self.editAllocationObj.budget_id.data = null;
-              self.editAllocationObj.budget_id.update = null;
-            }
-            self.resetEditAllocationRemainingBudget();
-            self.editAllocationForm = App.updateObject(self.editAllocationForm);
+            self.onEditAllocationProjectChange(data);
           },
         },
         {
@@ -1096,6 +1205,7 @@ module.exports = {
           filter: false,
           groupable: false,
           clearable: true,
+          data_value: [],
           url: App.url + "budget/budget",
           searchby: ["budget_name"],
           formatter: ["id", "budget_name"],
@@ -1114,9 +1224,9 @@ module.exports = {
           paging: true,
           page: "1",
           limit: "10",
-          input: function () {
+          input: function (data) {
             var self = App.page();
-            self.refreshEditAllocationRemainingBudget();
+            self.onEditAllocationBudgetChange(data);
           },
         },
         {
@@ -1162,10 +1272,19 @@ module.exports = {
       dialogSubledgerRevise: false,
       dialogRevise: false,
       dialogCancel: false,
+      editAllocationSearch: {
+        dept_id: "",
+        type_operational_id: "",
+        sub_type_operational_id: "",
+        project_id: "",
+        budget_id: "",
+      },
       subledgerReviseLoading: false,
       subledgerReviseGroups: [],
       editAllocationLoading: false,
       editAllocationTarget: null,
+      editAllocationFormVisible: [],
+      editAllocationFormRenderKey: 0,
       editAllocationRemainingBudgetValue: null,
       editAllocationTotalHargaValue: null,
       action: "",
@@ -2572,14 +2691,227 @@ module.exports = {
       self.editAllocationRemainingBudgetValue = null;
       self.editAllocationObj.remaining_budget.form = false;
       self.editAllocationObj.remaining_budget.data = null;
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationFormState();
     },
     resetEditAllocationTotalHarga: function () {
       var self = this;
       self.editAllocationTotalHargaValue = null;
       self.editAllocationObj.total_harga.form = false;
       self.editAllocationObj.total_harga.data = null;
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationFormState();
+    },
+    refreshEditAllocationFormState: function () {
+      var self = this;
+      self.editAllocationFormVisible = self.editAllocationForm.filter(function (
+        item,
+      ) {
+        return [undefined, true].includes(item.form);
+      });
+      self.editAllocationFormRenderKey += 1;
+    },
+    formatEditAllocationListData: function (datas, item) {
+      var dataValue = [];
+      if (item.formatter) {
+        var formatter = item.formatter;
+        if (Array.isArray(item.formatter)) {
+          var text = function (val) {
+            return val[item.formatter[1]];
+          };
+          if (Array.isArray(item.formatter[1])) {
+            text = function (val) {
+              return item.formatter[1]
+                .map(function (key) {
+                  return val[key];
+                })
+                .join();
+            };
+          }
+          formatter = function (val) {
+            return {
+              text: text(val),
+              value: val[item.formatter[0]],
+            };
+          };
+        }
+        if (Array.isArray(datas)) {
+          dataValue = dataValue.concat(
+            datas.map(function (val) {
+              return formatter(val);
+            }),
+          );
+        }
+      } else if (Array.isArray(datas)) {
+        dataValue = dataValue.concat(datas);
+      }
+      return dataValue;
+    },
+    getEditAllocationAutocompleteItems: function (fieldKey) {
+      var self = this;
+      var item = self.editAllocationObj[fieldKey];
+      if (!item) return [];
+      if (!Array.isArray(item.data_value)) return [];
+      return item.data_value.map(function (val) {
+        if (val && typeof val === "object" && val.value !== undefined) {
+          return val;
+        }
+        return {
+          text: val,
+          value: val,
+        };
+      });
+    },
+    normalizeEditAllocationFieldChange: function (fieldKey, data) {
+      var self = this;
+      var item = self.editAllocationObj[fieldKey];
+      var normalized = {
+        data: data,
+        data_value: item && Array.isArray(item.data_value) ? item.data_value : [],
+      };
+      if (data && typeof data === "object" && data.data !== undefined) {
+        normalized = data;
+      }
+      return normalized;
+    },
+    syncEditAllocationSelectedOptionFromValue: function (fieldKey, value) {
+      var self = this;
+      var item = self.editAllocationObj[fieldKey];
+      if (!item || !Array.isArray(item.data_value)) return;
+      var selected = item.data_value.filter(function (val) {
+        return val && val.value == value;
+      })[0];
+      if (selected) {
+        self.setEditAllocationSelectedOption(fieldKey, selected);
+      }
+    },
+    setEditAllocationSelectedOption: function (fieldKey, option) {
+      var self = this;
+      var item = self.editAllocationObj[fieldKey];
+      if (!item || !option) return;
+      item.data_selected = option;
+      if (!Array.isArray(item.data_value)) {
+        item.data_value = [];
+      }
+      var exists = item.data_value.some(function (val) {
+        return val && option && val.value == option.value;
+      });
+      if (!exists) {
+        item.data_value = [option].concat(item.data_value);
+      }
+    },
+    syncEditAllocationSelectedOptionFromData: function (fieldKey, data) {
+      var self = this;
+      if (!data || !Array.isArray(data.data_value)) return;
+      var selected = data.data_value.filter(function (val) {
+        return val.value == data.data;
+      })[0];
+      if (selected) {
+        self.setEditAllocationSelectedOption(fieldKey, selected);
+      }
+    },
+    resetEditAllocationFieldState: function (fieldKey, options) {
+      var self = this;
+      var item = self.editAllocationObj[fieldKey];
+      var config = Object.assign(
+        {
+          clearOptions: false,
+          clearSearch: false,
+        },
+        options || {},
+      );
+      if (!item) return;
+      item.data = null;
+      item.update = null;
+      item.data_selected = null;
+      if (config.clearOptions) {
+        item.data_value = [];
+      }
+      if (config.clearSearch && self.editAllocationSearch[fieldKey] !== undefined) {
+        self.editAllocationSearch[fieldKey] = "";
+      }
+    },
+    fetchEditAllocationFieldOptions: async function (fieldKey, searchText) {
+      var self = this;
+      var item = self.editAllocationObj[fieldKey];
+      if (!item || item.type !== "list" || typeof item.url !== "string") return;
+      try {
+        var options = {
+          filter: {},
+          filterType: {},
+          filterCondition: {},
+        };
+        if (item.options) {
+          options = JSON.parse(JSON.stringify(item.options));
+        }
+        if (item.paging) {
+          options.itemsPerPage = item.limit || 10;
+          options.page = item.page || 1;
+        }
+        var keyword =
+          searchText !== undefined && searchText !== null
+            ? String(searchText).trim()
+            : "";
+        if (keyword.length !== 0) {
+          if (Array.isArray(item.searchby)) {
+            item.searchby.map(function (val) {
+              options.filter[val] = keyword;
+              if (options.filterType[val] === undefined) {
+                options.filterType[val] = "%";
+              }
+              if (options.filterCondition[val] === undefined) {
+                options.filterCondition[val] = "OR";
+              }
+            });
+          } else if (Array.isArray(item.formatter)) {
+            options.filter[item.formatter[1]] = keyword;
+            if (options.filterType[item.formatter[1]] === undefined) {
+              options.filterType[item.formatter[1]] = "%";
+            }
+          } else {
+            options.filter[item.pk || item.value] = keyword;
+            if (options.filterType[item.pk || item.value] === undefined) {
+              options.filterType[item.pk || item.value] = "%";
+            }
+          }
+        } else {
+          if (item.pk !== undefined) {
+            delete options.filter[item.pk];
+          } else if (Array.isArray(item.formatter)) {
+            delete options.filter[item.formatter[0]];
+          } else if (Array.isArray(item.searchby)) {
+            item.searchby.map(function (val) {
+              delete options.filter[val];
+            });
+          } else {
+            delete options.filter[item.pk || item.value];
+          }
+        }
+        var res = await axios.get(item.url, {
+          params: vTableParam(options),
+        });
+        if (!res.data.status) return;
+        var fetched = self.formatEditAllocationListData(
+          res.data.data,
+          item,
+        );
+        if (item.data_selected) {
+          fetched = fetched.filter(function (val) {
+            return !val || val.value != item.data_selected.value;
+          });
+          item.data_value = [item.data_selected].concat(fetched);
+        } else {
+          item.data_value = fetched;
+        }
+        if (item.paging && res.data.total !== undefined) {
+          item.total = Math.ceil(
+            parseInt(res.data.total || 0) / parseInt(item.limit || 10),
+          );
+        }
+      } catch (e) {}
+    },
+    onEditAllocationSearch: function (fieldKey, value) {
+      var self = this;
+      self.editAllocationSearch[fieldKey] = value;
+      self.fetchEditAllocationFieldOptions(fieldKey, value);
     },
     toEditAllocationNumber: function (value) {
       if (value === null || value === undefined || value === "") return 0;
@@ -2615,7 +2947,7 @@ module.exports = {
       self.editAllocationTotalHargaValue = Number(totalHarga || 0);
       self.editAllocationObj.total_harga.form = true;
       self.editAllocationObj.total_harga.data = formattedTotalHarga;
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationFormState();
       return totalHarga;
     },
     validateEditAllocationRemainingBudget: function (projectType) {
@@ -2626,7 +2958,8 @@ module.exports = {
         self.editAllocationRemainingBudgetValue === undefined
       ) {
         App.errorMsg({
-          message: "Remaining Budget belum berhasil dimuat. Silakan cek allocation yang dipilih.",
+          message:
+            "Remaining Budget belum berhasil dimuat. Silakan cek allocation yang dipilih.",
         });
         return false;
       }
@@ -2655,7 +2988,7 @@ module.exports = {
       }
       self.editAllocationObj.remaining_budget.form = true;
       self.editAllocationObj.remaining_budget.data = message;
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationFormState();
     },
     applyEditAllocationRemainingBudget: function (remaining) {
       var self = this;
@@ -2669,7 +3002,7 @@ module.exports = {
       self.editAllocationObj.remaining_budget.form = true;
       self.editAllocationObj.remaining_budget.data =
         "Remaining Budget : " + formattedRemaining;
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationFormState();
     },
     fetchEditAllocationProjectRemainingBudget: function (projectId, budgetId) {
       var self = this;
@@ -2843,17 +3176,22 @@ module.exports = {
       if (projectType !== "Project") {
         self.editAllocationObj.project_id.data = null;
         self.editAllocationObj.project_id.update = null;
+        self.editAllocationObj.project_id.data_selected = null;
         self.editAllocationObj.budget_id.data = null;
         self.editAllocationObj.budget_id.update = null;
+        self.editAllocationObj.budget_id.data_selected = null;
         self.editAllocationObj.budget_id.options.filter.project_id = -1;
       }
       if (projectType !== "Operational") {
         self.editAllocationObj.dept_id.data = null;
         self.editAllocationObj.dept_id.update = null;
+        self.editAllocationObj.dept_id.data_selected = null;
         self.editAllocationObj.type_operational_id.data = null;
         self.editAllocationObj.type_operational_id.update = null;
+        self.editAllocationObj.type_operational_id.data_selected = null;
         self.editAllocationObj.sub_type_operational_id.data = null;
         self.editAllocationObj.sub_type_operational_id.update = null;
+        self.editAllocationObj.sub_type_operational_id.data_selected = null;
         delete self.editAllocationObj.type_operational_id.options.filter
           .department_id;
         delete self.editAllocationObj.sub_type_operational_id.options.filter
@@ -2862,15 +3200,115 @@ module.exports = {
           .type_operational_id;
       }
 
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
-      self.refreshEditAllocationRemainingBudget();
+      self.refreshEditAllocationFormState();
+      if (projectType === "Project") {
+        self.fetchEditAllocationFieldOptions(
+          "project_id",
+          self.editAllocationSearch.project_id,
+        );
+        self.fetchEditAllocationFieldOptions(
+          "budget_id",
+          self.editAllocationSearch.budget_id,
+        );
+        var projectId = self.editAllocationObj.project_id.data;
+        var budgetId = self.editAllocationObj.budget_id.data;
+        if (projectId && budgetId) {
+          self.fetchEditAllocationProjectRemainingBudget(projectId, budgetId);
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+        return;
+      }
+      if (projectType === "Operational") {
+        self.fetchEditAllocationFieldOptions(
+          "dept_id",
+          self.editAllocationSearch.dept_id,
+        );
+        self.fetchEditAllocationFieldOptions(
+          "type_operational_id",
+          self.editAllocationSearch.type_operational_id,
+        );
+        self.fetchEditAllocationFieldOptions(
+          "sub_type_operational_id",
+          self.editAllocationSearch.sub_type_operational_id,
+        );
+        var deptId = self.editAllocationObj.dept_id.data;
+        var typeOperationalId = self.editAllocationObj.type_operational_id.data;
+        var subTypeOperationalId =
+          self.editAllocationObj.sub_type_operational_id.data;
+        if (deptId && typeOperationalId && subTypeOperationalId) {
+          self.fetchEditAllocationOperationalRemainingBudget(
+            deptId,
+            typeOperationalId,
+            subTypeOperationalId,
+          );
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+        return;
+      }
+      if (projectType === "Persediaan") {
+        self.fetchEditAllocationPersediaanRemainingBudget();
+        return;
+      }
+      self.resetEditAllocationRemainingBudget();
+    },
+    onEditAllocationProjectChange: function (data) {
+      var self = this;
+      data = self.normalizeEditAllocationFieldChange("project_id", data);
+      var projectId = data.data || null;
+      self.syncEditAllocationSelectedOptionFromData("project_id", data);
+      self.syncEditAllocationSelectedOptionFromValue("project_id", projectId);
+      if (projectId) {
+        self.editAllocationObj.budget_id.options.filter.project_id = projectId;
+      } else {
+        self.editAllocationObj.budget_id.options.filter.project_id = -1;
+      }
+      self.resetEditAllocationFieldState("budget_id", {
+        clearOptions: true,
+        clearSearch: true,
+      });
+      self.fetchEditAllocationFieldOptions(
+        "budget_id",
+        "",
+      );
+      if (self.editAllocationObj.project_type.data === "Project") {
+        var budgetId = self.editAllocationObj.budget_id.data;
+        if (projectId && budgetId) {
+          self.fetchEditAllocationProjectRemainingBudget(projectId, budgetId);
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+      }
+      self.refreshEditAllocationFormState();
+    },
+    onEditAllocationBudgetChange: function (data) {
+      var self = this;
+      data = self.normalizeEditAllocationFieldChange("budget_id", data);
+      self.syncEditAllocationSelectedOptionFromData("budget_id", data);
+      self.syncEditAllocationSelectedOptionFromValue("budget_id", data.data);
+      if (self.editAllocationObj.project_type.data === "Project") {
+        var projectId = self.editAllocationObj.project_id.data;
+        var budgetId = data.data || self.editAllocationObj.budget_id.data;
+        if (projectId && budgetId) {
+          self.fetchEditAllocationProjectRemainingBudget(projectId, budgetId);
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+      }
+      self.refreshEditAllocationFormState();
     },
     onEditAllocationDepartmentChange: function (deptId) {
       var self = this;
-      self.editAllocationObj.type_operational_id.data = null;
-      self.editAllocationObj.type_operational_id.update = null;
-      self.editAllocationObj.sub_type_operational_id.data = null;
-      self.editAllocationObj.sub_type_operational_id.update = null;
+      deptId = self.normalizeEditAllocationFieldChange("dept_id", deptId).data;
+      self.resetEditAllocationFieldState("type_operational_id", {
+        clearOptions: true,
+        clearSearch: true,
+      });
+      self.resetEditAllocationFieldState("sub_type_operational_id", {
+        clearOptions: true,
+        clearSearch: true,
+      });
       if (deptId) {
         self.editAllocationObj.type_operational_id.options.filter.department_id =
           deptId;
@@ -2884,13 +3322,33 @@ module.exports = {
       }
       delete self.editAllocationObj.sub_type_operational_id.options.filter
         .type_operational_id;
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
-      self.refreshEditAllocationRemainingBudget();
+      self.fetchEditAllocationFieldOptions("type_operational_id");
+      self.fetchEditAllocationFieldOptions("sub_type_operational_id");
+      self.refreshEditAllocationFormState();
+      if (self.editAllocationObj.project_type.data === "Operational") {
+        var typeId = self.editAllocationObj.type_operational_id.data;
+        var subTypeId = self.editAllocationObj.sub_type_operational_id.data;
+        if (deptId && typeId && subTypeId) {
+          self.fetchEditAllocationOperationalRemainingBudget(
+            deptId,
+            typeId,
+            subTypeId,
+          );
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+      }
     },
     onEditAllocationTypeDepartmentChange: function (typeOperationalId) {
       var self = this;
-      self.editAllocationObj.sub_type_operational_id.data = null;
-      self.editAllocationObj.sub_type_operational_id.update = null;
+      typeOperationalId = self.normalizeEditAllocationFieldChange(
+        "type_operational_id",
+        typeOperationalId,
+      ).data;
+      self.resetEditAllocationFieldState("sub_type_operational_id", {
+        clearOptions: true,
+        clearSearch: true,
+      });
       if (typeOperationalId) {
         self.editAllocationObj.sub_type_operational_id.options.filter.type_operational_id =
           typeOperationalId;
@@ -2898,14 +3356,55 @@ module.exports = {
         delete self.editAllocationObj.sub_type_operational_id.options.filter
           .type_operational_id;
       }
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
-      self.refreshEditAllocationRemainingBudget();
+      self.fetchEditAllocationFieldOptions("sub_type_operational_id");
+      self.refreshEditAllocationFormState();
+      if (self.editAllocationObj.project_type.data === "Operational") {
+        var deptId = self.editAllocationObj.dept_id.data;
+        var subTypeId = self.editAllocationObj.sub_type_operational_id.data;
+        if (deptId && typeOperationalId && subTypeId) {
+          self.fetchEditAllocationOperationalRemainingBudget(
+            deptId,
+            typeOperationalId,
+            subTypeId,
+          );
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+      }
+    },
+    onEditAllocationSubTypeDepartmentChange: function (subTypeOperationalId) {
+      var self = this;
+      subTypeOperationalId = self.normalizeEditAllocationFieldChange(
+        "sub_type_operational_id",
+        subTypeOperationalId,
+      ).data;
+      if (self.editAllocationObj.project_type.data === "Operational") {
+        var deptId = self.editAllocationObj.dept_id.data;
+        var typeOperationalId = self.editAllocationObj.type_operational_id.data;
+        if (deptId && typeOperationalId && subTypeOperationalId) {
+          self.fetchEditAllocationOperationalRemainingBudget(
+            deptId,
+            typeOperationalId,
+            subTypeOperationalId,
+          );
+        } else {
+          self.resetEditAllocationRemainingBudget();
+        }
+      }
+      self.refreshEditAllocationFormState();
     },
     openEditAllocation: async function (subledger) {
       var self = this;
       self.editAllocationTarget = subledger;
       self.editAllocationLoading = true;
       self.dialogEditAllocation = true;
+      self.editAllocationSearch = {
+        dept_id: "",
+        type_operational_id: "",
+        sub_type_operational_id: "",
+        project_id: "",
+        budget_id: "",
+      };
       await self.$nextTick();
 
       self.editAllocationObj.project_id.data_value = subledger.project_id
@@ -2915,11 +3414,16 @@ module.exports = {
               text:
                 [subledger.project_no, subledger.project_name]
                   .filter(Boolean)
-                  .join(" - ") || subledger.project_no || "-",
+                  .join(" - ") ||
+                subledger.project_no ||
+                "-",
               category_item: subledger.categoryitem_name || null,
             },
           ]
         : [];
+      self.editAllocationObj.project_id.data_selected = subledger.project_id
+        ? self.editAllocationObj.project_id.data_value[0]
+        : null;
       self.editAllocationObj.budget_id.data_value = subledger.budget_id
         ? [
             {
@@ -2928,6 +3432,9 @@ module.exports = {
             },
           ]
         : [];
+      self.editAllocationObj.budget_id.data_selected = subledger.budget_id
+        ? self.editAllocationObj.budget_id.data_value[0]
+        : null;
       self.editAllocationObj.dept_id.data_value = subledger.dept_id
         ? [
             {
@@ -2936,6 +3443,9 @@ module.exports = {
             },
           ]
         : [];
+      self.editAllocationObj.dept_id.data_selected = subledger.dept_id
+        ? self.editAllocationObj.dept_id.data_value[0]
+        : null;
       self.editAllocationObj.type_operational_id.data_value =
         subledger.type_operational_id
           ? [
@@ -2945,6 +3455,10 @@ module.exports = {
               },
             ]
           : [];
+      self.editAllocationObj.type_operational_id.data_selected =
+        subledger.type_operational_id
+          ? self.editAllocationObj.type_operational_id.data_value[0]
+          : null;
       self.editAllocationObj.sub_type_operational_id.data_value =
         subledger.sub_type_operational_id
           ? [
@@ -2954,6 +3468,10 @@ module.exports = {
               },
             ]
           : [];
+      self.editAllocationObj.sub_type_operational_id.data_selected =
+        subledger.sub_type_operational_id
+          ? self.editAllocationObj.sub_type_operational_id.data_value[0]
+          : null;
 
       self.editAllocationObj.project_type.data = subledger.project_type || null;
       self.editAllocationObj.project_type.update =
@@ -3018,7 +3536,15 @@ module.exports = {
         self.editAllocationObj.sub_type_operational_id.update =
           subledger.sub_type_operational_id || null;
       }
-      self.editAllocationForm = App.updateObject(self.editAllocationForm);
+      self.refreshEditAllocationFormState();
+      if (subledger.project_type === "Project") {
+        self.fetchEditAllocationFieldOptions("project_id");
+        self.fetchEditAllocationFieldOptions("budget_id");
+      } else if (subledger.project_type === "Operational") {
+        self.fetchEditAllocationFieldOptions("dept_id");
+        self.fetchEditAllocationFieldOptions("type_operational_id");
+        self.fetchEditAllocationFieldOptions("sub_type_operational_id");
+      }
       self.applyEditAllocationTotalHarga();
       try {
         await self.refreshEditAllocationRemainingBudget();
@@ -3074,7 +3600,10 @@ module.exports = {
         App.errorMsg({ message: "Type is required" });
         return;
       }
-      if (projectType === "Project" && (!payload.project_id || !payload.budget_id)) {
+      if (
+        projectType === "Project" &&
+        (!payload.project_id || !payload.budget_id)
+      ) {
         App.errorMsg({ message: "Project No dan Budget wajib diisi" });
         return;
       }
@@ -3085,7 +3614,8 @@ module.exports = {
           !payload.sub_type_operational_id)
       ) {
         App.errorMsg({
-          message: "Department, Type Department, dan Sub Type Department wajib diisi",
+          message:
+            "Department, Type Department, dan Sub Type Department wajib diisi",
         });
         return;
       }
@@ -3355,6 +3885,7 @@ module.exports = {
     if (check_user(["administrator"])) {
       delete self.itemsOptions.filter.created_by;
     }
+    self.refreshEditAllocationFormState();
     self.getData();
   },
 };
