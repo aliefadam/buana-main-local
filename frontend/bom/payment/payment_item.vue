@@ -216,6 +216,13 @@
                     <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
                     <span style="color: #555;">Loading purchase order report...</span>
                 </div>
+                <div
+                    v-else-if="reportError"
+                    style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(255, 255, 255, 0.96); z-index: 1; text-align: center; padding: 24px;"
+                >
+                    <span style="color: #d32f2f; font-weight: 600;">{{ reportError }}</span>
+                    <v-btn color="primary" @click="reloadActiveReport">Reload</v-btn>
+                </div>
                 <iframe
                     v-if="reportUrl"
                     :key="activeReportKey"
@@ -323,8 +330,11 @@
                 dialogReport: false,
                 reportLoading: false,
                 reportUrl: "",
+                reportError: "",
+                reportTarget: null,
                 reportRequestKey: 0,
                 activeReportKey: 0,
+                reportLoadTimeout: null,
                 headers: [{
                         text: "id",
                         value: "id",
@@ -1042,23 +1052,63 @@
                     App.errorMsg('PO data not found')
                     return
                 }
-                var name = target.po_no.replace(/\//g, '_').replace(/\-/g, '_')
-                var randomid= randomId()
                 var requestKey = self.reportRequestKey + 1
                 self.reportRequestKey = requestKey
                 self.activeReportKey = requestKey
-                self.reportLoading = true
-                self.reportUrl = ''
+                self.reportTarget = target
                 self.dialogReport = true
                 self.$nextTick(function() {
                     if (self.activeReportKey !== requestKey) return
-                    self.reportUrl = 'https://main.buanamultiteknik.com/api/data/reportpo2?id=' + target.po_id + '&filename=' + name + '&idx=' + randomid
+                    self.loadReport(target, requestKey)
+                })
+            },
+            loadReport: function(target, requestKey) {
+                var self = this
+                var name = target.po_no.replace(/\//g, '_').replace(/\-/g, '_')
+                var randomid = randomId()
+                var sourceUrl = 'https://main.buanamultiteknik.com/api/data/reportpo2?id=' + target.po_id + '&filename=' + name + '&idx=' + randomid
+
+                self.clearReportLoadTimeout()
+                self.reportLoading = true
+                self.reportError = ''
+                self.reportUrl = ''
+
+                self.$nextTick(function() {
+                    if (self.activeReportKey !== requestKey || !self.dialogReport) return
+                    self.reportUrl = sourceUrl
+                    self.reportLoadTimeout = setTimeout(function() {
+                        if (self.activeReportKey !== requestKey || !self.dialogReport || !self.reportLoading) return
+                        self.reportLoading = false
+                        self.reportError = 'Report PO belum berhasil dimuat. Silakan coba reload.'
+                    }, 20000)
                 })
             },
             onReportLoaded: function(reportKey) {
                 var self = this
                 if (reportKey !== self.activeReportKey) return
+                self.clearReportLoadTimeout()
                 self.reportLoading = false
+            },
+            reloadActiveReport: function() {
+                var self = this
+                var target = self.reportTarget
+                if (!target || !target.po_id || !target.po_no) {
+                    App.errorMsg('PO data not found')
+                    return
+                }
+                var requestKey = self.reportRequestKey + 1
+                self.reportRequestKey = requestKey
+                self.activeReportKey = requestKey
+                self.$nextTick(function() {
+                    if (self.activeReportKey !== requestKey) return
+                    self.loadReport(target, requestKey)
+                })
+            },
+            clearReportLoadTimeout: function() {
+                if (this.reportLoadTimeout) {
+                    clearTimeout(this.reportLoadTimeout)
+                    this.reportLoadTimeout = null
+                }
             },
             nextPayment: function(date, days) {
                 if(date && days){
@@ -1095,7 +1145,10 @@
         watch: {
             dialogReport: function(val) {
                 if (val) return
+                this.clearReportLoadTimeout()
                 this.reportLoading = false
+                this.reportError = ''
+                this.reportTarget = null
                 this.reportUrl = ''
             }
         },
