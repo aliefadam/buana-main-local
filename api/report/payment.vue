@@ -157,7 +157,8 @@
                     <td style="border-right: 0 !important; font-weight: bold;">{{currencyAsing}}</td>
                     <td style="border-left: 0 !important; text-align: right; font-weight: bold;">{{credit_note_asing}}</td>
                     <td style="border-right: 0 !important; font-weight: bold;">Rp. </td>
-                    <td style="border-left: 0 !important; text-align: right; font-weight: bold;" colspan="2">{{credit_note}}</td>
+                    <td style="border-left: 0 !important; text-align: right; font-weight: bold;">{{credit_note}}</td>
+                    <td></td>
                 </tr>
                 <tr v-if="has_credit_note_idr">
                     <td style="text-align: center; border-right: 0 !important; font-weight: bold;" colspan="7">Credit Note</td>
@@ -182,7 +183,8 @@
                     <td style="border-right: 0 !important; font-weight: bold;">{{currencyAsing}}</td>
                     <td style="border-left: 0 !important; text-align: right; font-weight: bold;">{{grand_total_asing}}</td>
                     <td style="border-right: 0 !important; font-weight: bold;">Rp. </td>
-                    <td style="border-left: 0 !important; text-align: right; font-weight: bold;" colspan="2">{{ grand_total }}</td>
+                    <td style="border-left: 0 !important; text-align: right; font-weight: bold;">{{ grand_total }}</td>
+                    <td></td>
                 </tr>
                 <tr v-if="no_currency">
                     <td style="text-align: center; border-right: 0 !important; font-weight: bold;" colspan="7">Grand Total</td>
