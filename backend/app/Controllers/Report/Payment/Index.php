@@ -310,27 +310,6 @@ public function test2(){
 					$approved = $value->approved2_date;
 					$invoice[] = $value->invoice_no;
 					
-					if (!isset($creditNoteMap[$value->invoice_id])) {
-                        $cnAmountRaw = (float)($value->credit_note_amount ?? 0);
-                        $cnAmountIdr = $cnAmountRaw;
-                        $curCode = strtoupper($value->currency ?? 'IDR');
-                        $rate = (float)($value->exchange_rate ?? 0);
-                        if ($cnAmountRaw != 0 && $curCode !== 'IDR' && $rate > 0) {
-                            $cnAmountIdr = $cnAmountRaw * $rate;
-                            $creditNoteTotalAsing += $cnAmountRaw;
-                        }
-                        $creditNoteMap[$value->invoice_id] = [
-                            "invoice_no" => $value->invoice_no,
-                            "credit_note_no" => $value->credit_note_no ?? "",
-                            "credit_note_reference" => $value->credit_note_reference ?? "",
-                            "credit_note_amount_raw" => $cnAmountRaw,
-                            "credit_note_amount" => $cnAmountIdr,
-                            "credit_note_currency" => $curCode,
-                            "use_credit_note" => (int)($value->use_credit_note ?? 0),
-                        ];
-                    }
-
-
 					$value->po_no = str_replace("PO/", "PO/\n", $value->po_no);
 					if($value->po_no == null){
 						$value->po_no = array("", "");
@@ -355,6 +334,28 @@ public function test2(){
 						$totalCurrencyAsing += $data["data"][$key]->invoice_total_price;
 						$value->grand_total_price = ($data["data"][$key]->invoice_total_price * $value->exchange_rate);
 						$total+=$value->grand_total_price;
+					}
+					if (!isset($creditNoteMap[$value->invoice_id])) {
+						$cnAmountRaw = (float)($value->credit_note_amount ?? 0);
+						$cnAmountIdr = $cnAmountRaw;
+						$curCode = strtoupper($value->currency ?? 'IDR');
+						$invoiceAmountRaw = (float)($data["data"][$key]->invoice_total_price ?? 0);
+						$invoiceAmountIdr = (float)$value->grand_total_price;
+						if ($cnAmountRaw != 0 && $curCode !== 'IDR') {
+							$creditNoteTotalAsing += $cnAmountRaw;
+							if ($invoiceAmountRaw > 0 && $invoiceAmountIdr > 0) {
+								$cnAmountIdr = $invoiceAmountIdr * ($cnAmountRaw / $invoiceAmountRaw);
+							}
+						}
+						$creditNoteMap[$value->invoice_id] = [
+							"invoice_no" => $value->invoice_no,
+							"credit_note_no" => $value->credit_note_no ?? "",
+							"credit_note_reference" => $value->credit_note_reference ?? "",
+							"credit_note_amount_raw" => $cnAmountRaw,
+							"credit_note_amount" => $cnAmountIdr,
+							"credit_note_currency" => $curCode,
+							"use_credit_note" => (int)($value->use_credit_note ?? 0),
+						];
 					}
 					if($value->petty_cash == 1){
 						$value->ispettycash =true;
@@ -427,9 +428,10 @@ public function test2(){
 					$cnAmountRaw = (float)($value->credit_note_amount ?? 0);
 				    $cnAmountIdr = $cnAmountRaw;
 					$curCode = strtoupper($value->currency ?? 'IDR');
-					$rate = (float)($value->exchange_rate ?? 0);
-					if ($cnAmountRaw != 0 && $curCode !== 'IDR' && $rate > 0) {
-						$cnAmountIdr = $cnAmountRaw * $rate;
+					$invoiceAmountRaw = (float)($data["data"][$key]->invoice_total_price ?? 0);
+					$invoiceAmountIdr = (float)$value->grand_total_price;
+					if ($cnAmountRaw != 0 && $curCode !== 'IDR' && $invoiceAmountRaw > 0 && $invoiceAmountIdr > 0) {
+						$cnAmountIdr = $invoiceAmountIdr * ($cnAmountRaw / $invoiceAmountRaw);
 					}
 					$data["data"][$key]->has_credit_note = $cnAmountRaw != 0;
 					$data["data"][$key]->credit_note_amount_src_fmt = number_format($cnAmountRaw,2,',','.');
@@ -502,6 +504,9 @@ public function test2(){
 			$data["currency"] = $hasCurrencyAsing;
 			$noCurrencyAsing = !$hasCurrencyAsing;
 			$creditNoteTotalIdr = $creditNoteTotal;
+			if ($hasCurrencyAsing && $totalCurrencyAsing > 0 && $creditNoteTotalAsing > 0) {
+				$creditNoteTotalIdr = $total * ($creditNoteTotalAsing / $totalCurrencyAsing);
+			}
 			$hasCreditNote = ((float)$creditNoteTotalIdr) != 0;
             $hasCreditNoteCurrency = $hasCreditNote && $hasCurrencyAsing;
             $hasCreditNoteIdr = $hasCreditNote && !$hasCurrencyAsing;
