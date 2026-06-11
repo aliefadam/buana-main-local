@@ -56,9 +56,26 @@ class PaymentModel extends Model
 		if(isset($json->debug)){
 			return ["select *,
 			
-	    (select format(sum(coalesce(i.credit_note_amount,0)), 2) from payment_item pi
-			left join invoice i on i.id = pi.invoice_id
-			where pi.flag = 1 and i.flag = 1 and pi.payment_id = s.id
+	    (select format(
+			case
+				when sum(case when coalesce(a.currency, 'IDR') = 'IDR' then 0 else a.invoice_total_price end) > 0 then
+					sum(a.invoice_total_price * (case when coalesce(a.currency, 'IDR') = 'IDR' then 1 else a.exchange_rate end))
+					* (sum(case when coalesce(a.currency, 'IDR') = 'IDR' then 0 else coalesce(a.credit_note_amount, 0) end)
+						/ sum(case when coalesce(a.currency, 'IDR') = 'IDR' then 0 else a.invoice_total_price end))
+					+ sum(case when coalesce(a.currency, 'IDR') = 'IDR' then coalesce(a.credit_note_amount, 0) else 0 end)
+				else sum(coalesce(a.credit_note_amount, 0))
+			end
+		, 2) from (SELECT case when i.payment_pct_fiat != 0 then (i.payment_pct_fiat + i.invoice_charge) - invoice_reduction
+            when as_reference = 0 then ((i.grand_total_price * (i.payment_pct/100)) + i.invoice_charge) - invoice_reduction
+            else
+            	i.payment_amount + i.invoice_charge - i.invoice_reduction
+            end as invoice_total_price, coalesce(po.exchange_rate, i.exchange_rate) as exchange_rate, pi.payment_id, coalesce(po.currency, ms.currency) as currency, i.credit_note_amount
+
+            FROM
+            payment_item pi left join invoice i on i.id = pi.invoice_id
+            left join purchase_order po on po.id = i.po_id
+			left join m_supplier ms on ms.id = i.supplier_id
+            where pi.flag = 1 and i.flag = 1)a where a.payment_id = s.id
 		) as credit_note_total,
         (select sum((a.invoice_total_price* case when po.currency = 'idr' then 1 else a.exchange_rate end)) as total_tp from (SELECT case when i.payment_pct_fiat != 0 then (i.payment_pct_fiat + i.invoice_charge) - invoice_reduction 
             when as_reference = 0 then ((i.grand_total_price * (i.payment_pct/100)) + i.invoice_charge) - invoice_reduction 
@@ -76,9 +93,26 @@ class PaymentModel extends Model
 		}
         $query = $db->query("select * ,
 		
-		(select format(sum(coalesce(i.credit_note_amount,0)), 2) from payment_item pi
-			left join invoice i on i.id = pi.invoice_id
-			where pi.flag = 1 and i.flag = 1 and pi.payment_id = s.id
+		(select format(
+			case
+				when sum(case when coalesce(a.currency, 'IDR') = 'IDR' then 0 else a.invoice_total_price end) > 0 then
+					sum(a.invoice_total_price * (case when coalesce(a.currency, 'IDR') = 'IDR' then 1 else a.exchange_rate end))
+					* (sum(case when coalesce(a.currency, 'IDR') = 'IDR' then 0 else coalesce(a.credit_note_amount, 0) end)
+						/ sum(case when coalesce(a.currency, 'IDR') = 'IDR' then 0 else a.invoice_total_price end))
+					+ sum(case when coalesce(a.currency, 'IDR') = 'IDR' then coalesce(a.credit_note_amount, 0) else 0 end)
+				else sum(coalesce(a.credit_note_amount, 0))
+			end
+		, 2) from (SELECT case when i.payment_pct_fiat != 0 then (i.payment_pct_fiat + i.invoice_charge) - invoice_reduction
+            when as_reference = 0 then ((i.grand_total_price * (i.payment_pct/100)) + i.invoice_charge) - invoice_reduction
+            else
+            	i.payment_amount + i.invoice_charge - i.invoice_reduction
+            end as invoice_total_price, coalesce(po.exchange_rate, i.exchange_rate) as exchange_rate, pi.payment_id, coalesce(po.currency, ms.currency) as currency, i.credit_note_amount
+
+            FROM
+            payment_item pi left join invoice i on i.id = pi.invoice_id
+            left join purchase_order po on po.id = i.po_id
+			left join m_supplier ms on ms.id = i.supplier_id
+            where pi.flag = 1 and i.flag = 1)a where a.payment_id = s.id
 		) as credit_note_total,	 
         (select format(sum((a.invoice_total_price*(case when a.currency = 'idr' OR isnull(a.currency) then 1 else a.exchange_rate end))), 2) as total_tp from (SELECT case when i.payment_pct_fiat != 0 then (i.payment_pct_fiat + i.invoice_charge) - invoice_reduction 
             when as_reference = 0 then ((i.grand_total_price * (i.payment_pct/100)) + i.invoice_charge) - invoice_reduction 
