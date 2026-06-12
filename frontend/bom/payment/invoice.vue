@@ -346,11 +346,15 @@
                 </span>
                 {{ props.item.project_id ? "-" : "100%" }}
                 {{
-                  props.item.invoice_total_price
+                  getDisplayInvoiceAmount(props.item)
                     ? "(" +
-                      Number(props.item.invoice_total_price).toLocaleString() +
+                      Number(
+                        getDisplayInvoiceAmount(props.item),
+                      ).toLocaleString() +
                       " / " +
-                      Number(props.item.invoice_total_price).toLocaleString() +
+                      Number(
+                        getDisplayInvoiceAmount(props.item),
+                      ).toLocaleString() +
                       ")"
                     : ""
                 }}
@@ -370,7 +374,7 @@
       </template>
       <template v-slot:item.invoice_amount="props">
         <b>Currency:</b> {{ props.item.currency }}<br />
-        <b>Amount:</b> {{ Number(props.item.invoice_total_price).format(2, 3)
+        <b>Amount:</b> {{ formatAmount(getDisplayInvoiceAmount(props.item))
         }}<br />
         <b>PCT:</b> {{ Number(props.item.payment_pct) }} %
       </template>
@@ -2601,8 +2605,37 @@ module.exports = {
         maximumFractionDigits: 2,
       });
     },
+    getDisplayInvoiceAmount: function (item) {
+      var paymentValue = this.toNumber(item && item.payment_value);
+      if (paymentValue > 0) {
+        return paymentValue;
+      }
+      return this.toNumber(item && item.invoice_total_price);
+    },
+    getProjectAllocationAmount: function (item) {
+      var paymentPctFiat = this.toNumber(item && item.payment_pct_fiat);
+      if (paymentPctFiat > 0) {
+        return paymentPctFiat;
+      }
+
+      var asReference = Number(item && item.as_reference);
+      if (asReference === 0) {
+        var grandTotal = this.toNumber(item && item.grand_total_price);
+        var paymentPct = this.toNumber(item && item.payment_pct);
+        if (grandTotal > 0 && paymentPct > 0) {
+          return grandTotal * (paymentPct / 100);
+        }
+      }
+
+      var paymentAmount = this.toNumber(item && item.payment_amount);
+      if (paymentAmount > 0) {
+        return paymentAmount;
+      }
+
+      return this.getDisplayInvoiceAmount(item);
+    },
     getAllocationBase: function (item, project) {
-      var invoiceTotal = this.toNumber(item && item.invoice_total_price);
+      var invoiceTotal = this.getProjectAllocationAmount(item);
       if (invoiceTotal > 0) {
         return invoiceTotal;
       }
@@ -2633,7 +2666,7 @@ module.exports = {
     },
     getAllocationNumerator: function (item, project) {
       var refNo = (item && (item.po_no || item.invoice_no)) || "";
-      var invoiceTotal = this.toNumber(item && item.invoice_total_price);
+      var invoiceTotal = this.getProjectAllocationAmount(item);
       var projectTotal = this.getRowTotalPrice(project);
 
       if (invoiceTotal > 0 && projectTotal > 0 && refNo) {
@@ -2795,7 +2828,7 @@ module.exports = {
       return total;
     },
     getPersediaanAllocationBase: function (item, refNo) {
-      var invoiceTotal = this.toNumber(item && item.invoice_total_price);
+      var invoiceTotal = this.getProjectAllocationAmount(item);
       if (invoiceTotal > 0) {
         return invoiceTotal;
       }
@@ -2806,7 +2839,7 @@ module.exports = {
       return this.getPersediaanTotal(refNo);
     },
     getPersediaanAllocationNumerator: function (item, refNo) {
-      var invoiceTotal = this.toNumber(item && item.invoice_total_price);
+      var invoiceTotal = this.getProjectAllocationAmount(item);
       var persediaanTotal = this.getPersediaanTotal(refNo);
       if (invoiceTotal > 0 && persediaanTotal > 0) {
         var combined = this.getCombinedAllocationTotalForRef(refNo);

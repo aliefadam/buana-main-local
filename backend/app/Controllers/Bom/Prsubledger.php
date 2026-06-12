@@ -95,6 +95,7 @@ class Prsubledger extends ResourceController
         
         $data['is_warning'] = $is_warning ? 1 : 0;
         $data['force_budget_minus_reason'] = $force_budget_minus_reason;
+        $data['is_part'] = isset($json->is_part) && $json->is_part === 'Yes' ? 1 : 0;
     
 		$session = session();
 		$s = $session->get();
@@ -178,6 +179,9 @@ class Prsubledger extends ResourceController
                         $data[$key] = $value;
                     }
                 }
+            }
+            if (isset($data['is_part'])) {
+                $data['is_part'] = $data['is_part'] === 'Yes' ? 1 : 0;
             }
             $session = session();
     		$s = $session->get();
