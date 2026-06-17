@@ -2541,29 +2541,32 @@ module.exports = {
       }
 
       if (self.selected && Number(self.selected.approved) === 1) {
-        if ((self.selected.summary || "").trim() !== "") {
-          this.summary = self.selected.summary || "";
-        } else {
-          this.summaryLoading = true;
-          self
-            .buildDefaultSummary(self.selected)
-            .then(function (summary) {
-              if (
-                self.dialogNote &&
-                self.selected &&
-                Number(self.selected.approved) === 1 &&
-                (self.summary || "").trim() === ""
-              ) {
-                self.summary = summary;
-              }
-            })
-            .catch(function (e) {
-              console.log("Default summary build error:", e);
-            })
-            .finally(function () {
-              self.summaryLoading = false;
-            });
-        }
+        var fallbackSummary = self.selected.summary || "";
+        this.summaryLoading = true;
+        self
+          .buildDefaultSummary(self.selected)
+          .then(function (summary) {
+            if (
+              self.dialogNote &&
+              self.selected &&
+              Number(self.selected.approved) === 1
+            ) {
+              self.summary = summary;
+            }
+          })
+          .catch(function (e) {
+            console.log("Default summary build error:", e);
+            if (
+              self.dialogNote &&
+              self.selected &&
+              Number(self.selected.approved) === 1
+            ) {
+              self.summary = fallbackSummary;
+            }
+          })
+          .finally(function () {
+            self.summaryLoading = false;
+          });
       }
 
       if (!(self.selected.approved == 1 || self.selected.approved == -2)) {

@@ -68,6 +68,11 @@ module.exports = {
           ],
           disabled: !check_user(['administrator', 'po_admin','purchaseorder_po_page'])
         },
+        {
+          name: "Manufacturing Order",
+          loadWithBase: "/purchasing/bom/manufacturing/order",
+          disabled: !check_user(["administrator"]),
+        },
         
 // 		{
 // 			name: "Fake Purchase Order",

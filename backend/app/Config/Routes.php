@@ -314,6 +314,12 @@ $routes->get('bom/item/create_from_bom', 'Bom\Item::create_from_bom');
 
 $routes->resource('bom/department');
 
+$routes->resource('bom/manufacturing_order', ['except' => 'show']);
+
+$routes->resource('bom/manufacturing_order_detail', ['except' => 'show']);
+
+$routes->resource('bom/manufacturing_order_detail_po', ['except' => 'show']);
+
 $routes->resource('bom/bom_header');
 
 $routes->resource('bom/bom_item');
