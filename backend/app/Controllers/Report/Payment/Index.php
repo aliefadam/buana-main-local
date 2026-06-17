@@ -477,7 +477,7 @@ public function test2(){
 
 			$this->info("<b>Validated:</b> $validated <br/>Invoice: ".implode(', ', $invoice), "payment_validated_".$json["id"], $json["id"]);
 			$this->info("<b>Approved:</b> $approved <br/>Invoice: ".implode(', ', $invoice), "payment_approved_".$json["id"], $json["id"]);
-			if($pettyCash && !$data["currency"]){
+			if($pettyCash && !$hasCurrencyAsing){
 				$totalPettyCash = (int)$totalPettyCash;
 				$pettyCashCurrencyAsing = (int)$pettyCashCurrencyAsing;
 			}
