@@ -32,8 +32,46 @@ class ItemModel extends Model
             $where = 'where s.flag = 1';
         else
             $where .= ' and s.flag = 1';
+
+        $searchValue = '';
+        $searchFields = ['item_no', 'full', 'item_name', 'manufacture_pn', 'article_item'];
+        foreach ($searchFields as $field) {
+            if (isset($json->filter[$field])) {
+                $candidate = trim((string) $json->filter[$field]);
+                if ($candidate !== '') {
+                    $searchValue = $candidate;
+                    break;
+                }
+            }
+        }
+
+        $searchRank = "5 as search_rank";
+        if ($searchValue !== '') {
+            $escapedExact = $db->escape($searchValue);
+            $escapedPrefix = $db->escape($db->escapeLikeString($searchValue) . '%');
+            $escapedAnywhere = $db->escape('%' . $db->escapeLikeString($searchValue) . '%');
+            $searchRank = "
+                case
+                    when s.item_no = $escapedExact then 0
+                    when s.item_no like $escapedPrefix then 1
+                    when s.item_name like $escapedAnywhere then 2
+                    when coalesce(s.manufacture_pn, '') like $escapedAnywhere then 3
+                    when coalesce(s.original_manufacture, '') like $escapedAnywhere then 4
+                    else 5
+                end as search_rank
+            ";
+
+            $orderBody = trim(preg_replace('/^\s*order by\s+/i', '', $order));
+            $order = " order by search_rank asc";
+            if ($orderBody !== '') {
+                $order .= ", " . $orderBody;
+            } else {
+                $order .= ", item_no asc";
+            }
+        }
             
 		$q = "select date(s.created_date) as crea_date, date(s.modified_date) as mod_date, poi.price_per_item, 
+        $searchRank,
         concat(';', s.id, ';') as item_search, po.currency, concat(s.item_no, ' - ', s.item_name, ' - ', coalesce(s.original_manufacture, ''), ' - ', coalesce(s.manufacture_pn, '')) as full, concat(s.item_name, ' - ',  coalesce(s.article_no, '')) as article_item, 
         u.name as created_by_name, v.name as modified_by_name,  ".join(',', array_map(array($this, 'addPrefix'), $this->allowedFields))." from `$this->table` s
 		left join (select poi.price_per_item, poi.purchase_order_id, poi.item_id, row_number() over(partition by poi.item_id order by modified_date, id desc) as ct from purchase_order_item poi)poi on poi.item_id = s.id and poi.ct = 1
@@ -47,7 +85,7 @@ class ItemModel extends Model
 
         $fields="*";
         if(isset($json->full))
-			$fields = "distinct id, full, specification, datasheet, item_type";
+			$fields = "distinct id, full, specification, datasheet, item_type, search_rank";
 
         $query = $db->query("select $fields from ($q) s $where $order ". ($limit==-1 ? '' : "limit $offset, $limit"));
         
