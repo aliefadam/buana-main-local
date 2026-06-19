@@ -126,7 +126,7 @@ class PurchaseOrderModel extends Model
             " . join(',', array_map(array($this, 'addPrefix'), $this->allowedFields)) . ", d.dept_code, d.dept_name, ms.name as supplier_name, u.name as created_by_name, v.name as approved_by_name, w.name as approved2_by_name, x.name as modified_by_name, y.name as rejected_by_name, z.name as canceled_by_name, r.name as canceled_2_by_name, e.name as approval_draft_by_name, f.name as ask_draft_by_name, sp.name as sp_name,
             i.grand_total_price,
             (coalesce(i.grand_total_price, 0) + coalesce(tx.total_ppn_value, 0) - coalesce(tx.total_pph_value, 0)) as total_item_after_tax,
-            ms.email, rfq.rfq_no, pr.pr_no, pr.pr_subject, pr.id as prr_id,
+            ms.email, rfq.rfq_no, pr.pr_no, pr.pr_subject, pr.delivery_time as pr_delivery_time, pr.id as prr_id,
             (
                 (
                     coalesce(i.grand_total_price, 0)

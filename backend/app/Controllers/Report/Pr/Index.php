@@ -37,6 +37,14 @@ class Index extends Controller
 {
     use ResponseTrait;
 
+    private function normalizeOperationalPreviewLabels(string $html): string
+    {
+        $html = preg_replace('/(?<!SUB )TYPE SUB\s*:/', 'OPERATIONAL SUB TYPE:', $html);
+        $html = preg_replace('/(?<!SUB )TYPE\s*:/', 'OPERATIONAL TYPE:', $html);
+
+        return $html;
+    }
+
     public function index(){
         
         
@@ -373,6 +381,7 @@ class Index extends Controller
 		}
 		//else{
 		$tpl = $templating->render(DOMinnerHTML($dom->getElementsByTagName('template')[0]), $params);
+		$tpl = $this->normalizeOperationalPreviewLabels($tpl);
 
 		return $tpl."<style>$style</style><script type='module' src='../../../library/pdf.mjs'></script><script type='module' src='../../../library/pdfviewer.mjs' onload='renderPDF()'></script>
 		<script>

@@ -8,7 +8,7 @@ class PrModel extends Model
     protected $returnType = 'object';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        "id", "pr_no", "pr_date", "pr_subject", "status", "currency", "exchange_rate", "rate_date", "pr_notes",
+        "id", "pr_no", "pr_date", "pr_subject", "status", "currency", "exchange_rate", "rate_date", "delivery_time", "pr_notes",
         "ask_approval", "pr_peminta", "pr_menyetujui", "peminta_setuju", "penyetuju_setuju", "created_date",
         "rejected_by", "created_by", "modified_date", "rejected_date", "reject_notes", "modified_by", "attachment",
         "askapproval_notes", "approval1_notes", "approval2_notes", "approved_notes", "rev", "rev_date", "isAn",

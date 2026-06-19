@@ -2845,7 +2845,7 @@ module.exports = {
         "Jenis Barang : " + (item.jenis_barang || "-"),
         "Manufacture/Brand : " + (item.brand || "-"),
         "Supplier/Vendor : " + (item.supplier_name || "-"),
-        "Delivery Time : -",
+        "Delivery Time : " + (item.pr_delivery_time || item.delivery_time || "-"),
         "Allocation : " + allocationText,
         "Total price : " +
           self.formatSummaryCurrency(item.currency, item.grand_total),

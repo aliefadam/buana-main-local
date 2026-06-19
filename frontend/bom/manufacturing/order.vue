@@ -146,16 +146,17 @@
                         <th>Item No</th>
                         <th>Item Name</th>
                         <th class="manufacturing-po-table__qty">Qty</th>
+                        <th class="manufacturing-po-table__action">Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-if="po.itemsLoading">
-                        <td colspan="3" class="manufacturing-po-table__empty">
+                        <td colspan="4" class="manufacturing-po-table__empty">
                           Loading items...
                         </td>
                       </tr>
                       <tr v-else-if="!po.items || po.items.length === 0">
-                        <td colspan="3" class="manufacturing-po-table__empty">
+                        <td colspan="4" class="manufacturing-po-table__empty">
                           No PO items
                         </td>
                       </tr>
@@ -169,7 +170,17 @@
                         </td>
                         <td>{{ item.item_name || "-" }}</td>
                         <td class="manufacturing-po-table__qty">
-                          {{ Number(item.order_qty || 0).format(2, 3) }}
+                          {{ formatQty(item.order_qty) }}
+                        </td>
+                        <td class="manufacturing-po-table__action">
+                          <v-btn
+                            color="primary"
+                            outlined
+                            x-small
+                            @click="openUsePartDialog(props.item, po, item)"
+                          >
+                            Gunakan Part
+                          </v-btn>
                         </td>
                       </tr>
                     </tbody>
@@ -218,6 +229,43 @@
           :valid.sync="poValid"
           ref="poForm"
         ></form-template>
+      </div>
+    </v-action-dialog>
+
+    <v-action-dialog
+      v-model="dialogUsePart"
+      title="Konfirmasi Gunakan Part"
+      min-height="0"
+      @save="confirmUsePart"
+      :disable-save="
+        usePartQty === null ||
+        usePartQty === undefined ||
+        String(usePartQty).trim() === ''
+      "
+    >
+      <div style="padding-top: 12px; line-height: 1.7">
+        <div>
+          Item: <b>{{ selectedUsePart.item_name || "-" }}</b>
+        </div>
+        <div>
+          Item No: <b>{{ selectedUsePart.item_no || "-" }}</b>
+        </div>
+        <div>
+          PO: <b>{{ selectedUsePart.po_no || "-" }}</b>
+        </div>
+        <div>
+          Qty PO: <b>{{ formatQty(selectedUsePart.order_qty) }}</b>
+        </div>
+        <div style="margin-top: 12px">
+          <v-text-field
+            v-model="usePartQty"
+            label="Qty yang ingin digunakan"
+            type="number"
+            filled
+            dense
+            min="1"
+          ></v-text-field>
+        </div>
       </div>
     </v-action-dialog>
   </v-container>
@@ -328,6 +376,12 @@
   white-space: nowrap;
 }
 
+.manufacturing-po-table__action {
+  width: 140px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .manufacturing-po-table__empty {
   text-align: center;
   color: #9ca3af;
@@ -359,11 +413,14 @@ module.exports = {
       dialogDetail: false,
       dialogAddItem: false,
       dialogSelectPo: false,
+      dialogUsePart: false,
       partValid: false,
       poValid: false,
       saveItemLoading: false,
       savePoLoading: false,
       attachedPoMap: {},
+      selectedUsePart: {},
+      usePartQty: 1,
       itemsOptions: {
         filter: {
           flag: 1,
@@ -609,6 +666,18 @@ module.exports = {
     };
   },
   methods: {
+    formatQty: function (value) {
+      var number = Number(value || 0);
+      if (Number.isInteger(number)) {
+        return number.toLocaleString("id-ID", {
+          maximumFractionDigits: 0,
+        });
+      }
+      return number.toLocaleString("id-ID", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 3,
+      });
+    },
     onSelectedRow: function (val) {
       this.selected = val === undefined ? false : val;
     },
@@ -759,6 +828,17 @@ module.exports = {
       ];
       this.dialogSelectPo = true;
     },
+    openUsePartDialog: function (detailItem, po, item) {
+      this.selectedUsePart = Object.assign({}, item, {
+        detail_id: detailItem && detailItem.id,
+        detail_name: detailItem && detailItem.name,
+        po_id: po && po.purchase_order_id,
+        po_no: po && po.po_no,
+        po_title: po && po.po_title,
+      });
+      this.usePartQty = 1;
+      this.dialogUsePart = true;
+    },
     openAddItemDialog: function () {
       this.partValid = false;
       this.itemHeaders = [
@@ -900,6 +980,9 @@ module.exports = {
         .finally(function () {
           self.saveItemLoading = false;
         });
+    },
+    confirmUsePart: function () {
+      this.dialogUsePart = false;
     },
     saveSelectedPoDraft: function () {
       var self = this;
