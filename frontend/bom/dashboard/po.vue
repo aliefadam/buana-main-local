@@ -228,8 +228,8 @@
             >{{ props.item.rfq_no }}<br /></a
           ><span v-else>{{ props.item.rfq_no }}</span> <b>PR No:</b>
           <a
-            :href="props.item.signed_pr_url"
-            v-if="props.item.signed_pr_url"
+            :href="resolvedSignedPrUrl(props.item)"
+            v-if="resolvedSignedPrUrl(props.item)"
             target="_blank"
             ><br />{{ props.item.pr_no }}</a
           ><span v-else>{{ props.item.pr_no }}</span
@@ -290,8 +290,8 @@
           ><span v-else>-</span><br />
           <b>Signed PR URL:</b>
           <a
-            :href="props.item.signed_pr_url"
-            v-if="props.item.signed_pr_url"
+            :href="resolvedSignedPrUrl(props.item)"
+            v-if="resolvedSignedPrUrl(props.item)"
             target="_blank"
             >Open Link</a
           ><span v-else>-</span>
@@ -546,8 +546,8 @@
               <div>
                 <b>PR No:</b>
                 <a
-                  v-if="item.signed_pr_url && item.pr_no"
-                  :href="item.signed_pr_url"
+                  v-if="resolvedSignedPrUrl(item) && item.pr_no"
+                  :href="resolvedSignedPrUrl(item)"
                   target="_blank"
                   @click.stop
                   >{{ item.pr_no }}</a
@@ -2448,6 +2448,10 @@ module.exports = {
       //if([3,8,59,11].includes(item.supplier_id) && Number(date.getDate())<15)
       //date.setDate(15)
       return date.formatDate("YYYY-MM-DD HH:mm:ss");
+    },
+    resolvedSignedPrUrl: function (item) {
+      if (!item) return "";
+      return item.signed_pr_url_resolved || item.signed_pr_url || "";
     },
     openReject: function () {
       this.reject_note = "";

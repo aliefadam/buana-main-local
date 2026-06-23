@@ -126,7 +126,39 @@ class PurchaseOrderModel extends Model
             " . join(',', array_map(array($this, 'addPrefix'), $this->allowedFields)) . ", d.dept_code, d.dept_name, ms.name as supplier_name, u.name as created_by_name, v.name as approved_by_name, w.name as approved2_by_name, x.name as modified_by_name, y.name as rejected_by_name, z.name as canceled_by_name, r.name as canceled_2_by_name, e.name as approval_draft_by_name, f.name as ask_draft_by_name, sp.name as sp_name,
             i.grand_total_price,
             (coalesce(i.grand_total_price, 0) + coalesce(tx.total_ppn_value, 0) - coalesce(tx.total_pph_value, 0)) as total_item_after_tax,
-            ms.email, rfq.rfq_no, pr.pr_no, pr.pr_subject, pr.delivery_time as pr_delivery_time, pr.id as prr_id,
+            ms.email, rfq.rfq_no, pr.pr_no, pr.pr_subject, pr.delivery_time as pr_delivery_time, pr.id as prr_id, pr.rev as pr_rev, pr.filepath as pr_filepath,
+            case
+                when coalesce((
+                    select rc.filepath
+                    from rfq_comment rc
+                    where rc.rfq_id = s.rfq_id
+                        and rc.flag = 1
+                        and coalesce(rc.filepath, '') != ''
+                        and coalesce(rc.comment, '') like concat('%', pr.pr_no, '%')
+                        and lower(coalesce(rc.comment, '')) like '%signed%'
+                    order by rc.id desc
+                    limit 1
+                ), '') != ''
+                    then concat(
+                        'https://main.buanamultiteknik.com/api/uploads/rfq',
+                        s.rfq_id,
+                        '/',
+                        substring_index((
+                            select rc.filepath
+                            from rfq_comment rc
+                            where rc.rfq_id = s.rfq_id
+                                and rc.flag = 1
+                                and coalesce(rc.filepath, '') != ''
+                                and coalesce(rc.comment, '') like concat('%', pr.pr_no, '%')
+                                and lower(coalesce(rc.comment, '')) like '%signed%'
+                            order by rc.id desc
+                            limit 1
+                        ), '+++', 1)
+                    )
+                when coalesce(pr.rev, 0) > 0 and coalesce(pr.filepath, '') != ''
+                    then concat('https://main.buanamultiteknik.com/api/uploads/pr', pr.id, '/', substring_index(pr.filepath, '+++', 1))
+                else s.signed_pr_url
+            end as signed_pr_url_resolved,
             (
                 (
                     coalesce(i.grand_total_price, 0)
