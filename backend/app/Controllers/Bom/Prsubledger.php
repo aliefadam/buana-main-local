@@ -8,6 +8,53 @@ use App\Models\Bom\PrpartModel;
 class Prsubledger extends ResourceController
 {
     use ResponseTrait;
+
+    private function buildMutationOldData($snapshot)
+    {
+        $projectType = $snapshot->project_type ?: null;
+        $data = [
+            'type' => $projectType,
+            'description' => $snapshot->description,
+            'qty' => $snapshot->qty,
+            'unit_price' => $snapshot->unit_price,
+            'allocation' => $snapshot->allocation,
+            'requirement' => $snapshot->requirement,
+            'year_budget' => $snapshot->year_budget,
+            'currency' => $snapshot->currency,
+            'exchange_rate' => $snapshot->exchange_rate,
+            'rate_date' => $snapshot->rate_date,
+            'category_item_id' => $snapshot->category_item_id,
+            'category_item_name' => $snapshot->category_item_name,
+            'alokasi_pembelian' => $snapshot->alokasi_pembelian,
+            'rnd_id' => $snapshot->rnd_id,
+            'rnd_name' => $snapshot->rnd_name,
+            'created_by' => $snapshot->created_by,
+            'created_date' => $snapshot->created_date,
+            'modified_by' => $snapshot->modified_by,
+            'modified_date' => $snapshot->modified_date,
+        ];
+
+        if ($projectType === "Project") {
+            $data['project_id'] = $snapshot->project_id;
+            $data['project_no'] = $snapshot->project_no;
+            $data['project_name'] = $snapshot->project_name;
+            $data['budget_id'] = $snapshot->budget_id;
+            $data['budget_name'] = $snapshot->budget_name;
+        } else if ($projectType === "Operational") {
+            $data['dept_id'] = $snapshot->dept_id;
+            $data['dept_name'] = $snapshot->dept_name;
+            $data['type_operational_id'] = $snapshot->type_operational_id;
+            $data['type_operational_name'] = $snapshot->type_operational_name;
+            $data['sub_type_operational_id'] = $snapshot->sub_type_operational_id;
+            $data['sub_type_operational_name'] = $snapshot->sub_type_operational_name;
+        } else if ($projectType === "Persediaan") {
+            $data['persediaan'] = [
+                'allocation' => $snapshot->allocation,
+            ];
+        }
+
+        return $data;
+    }
 	
     public function index()
     {
@@ -186,6 +233,7 @@ class Prsubledger extends ResourceController
             $session = session();
     		$s = $session->get();
             $q = $model->info($pk);
+            $snapshotResult = $model->mutationSnapshot($pk);
     		if(in_array("modified_by", $model->allowedFields) && isset($s["userid"]))
     			$data["modified_by"] = $s["userid"];
     		if(in_array("modified_date", $model->allowedFields))
@@ -199,13 +247,39 @@ class Prsubledger extends ResourceController
                     ];
                 }
             }
-        
-            $model->update($pk, $data);
+
+            $model->db->transStart();
+
+            if($snapshotResult[0]){
+                $snapshot = $snapshotResult[1];
+                $mutationData = [
+                    'pr_id' => $snapshot->pr_id,
+                    'pr_part_id' => $snapshot->pr_part_id,
+                    'pr_subledger_id' => $snapshot->pr_subledger_id,
+                    'old_data' => json_encode($this->buildMutationOldData($snapshot), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'created_by' => $s["userid"] ?? 0,
+                    'created_at' => date("Y-m-d H:i:s"),
+                ];
+                $model->db->table('subledger_revise_mutation')->insert($mutationData);
+            }
+
+            $updateResult = $model->update($pk, $data);
+            $model->db->transComplete();
+
+            if ($model->db->transStatus() === false) {
+                $response = [
+                    'status' => false,
+                    'data'   => 'Failed to save subledger revise mutation'
+                ];
+                return $this->respond($response, 500);
+            }
+
             $affected = $model->affectedRows();
         
-            if ($affected != 0) {
+            if ($updateResult) {
                 $response = [
-                    'status' => true
+                    'status' => true,
+                    'affected' => $affected
                 ];
             } else {
                 $response = [

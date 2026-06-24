@@ -434,6 +434,9 @@ $routes->resource('bom/prpart', ['except' => 'show']);
 
 $routes->resource('bom/prsubledger', ['except' => 'show']);
 
+$routes->get('bom/subledgerrevisemutation', 'Bom\SubledgerRevisemutation::index');
+$routes->resource('bom/subledgerrevisemutation', ['except' => 'show']);
+
 $routes->get('bom/pr/total_pr', 'Bom\Pr::total_pr');
 
 $routes->resource('bom/categoryitem', ['except' => 'show']);

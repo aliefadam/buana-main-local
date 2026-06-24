@@ -691,8 +691,18 @@
                     min-width: 180px;
                     display: flex;
                     justify-content: flex-end;
+                    gap: 8px;
+                    flex-wrap: wrap;
                   "
                 >
+                  <v-btn
+                    small
+                    color="secondary"
+                    outlined
+                    @click="openMutationLog(subledger)"
+                  >
+                    Mutation Log
+                  </v-btn>
                   <v-btn
                     small
                     color="primary"
@@ -862,6 +872,108 @@
       </div>
     </v-action-dialog>
     <v-action-dialog
+      :actions="false"
+      v-model="dialogMutationLog"
+      title="Mutation Log"
+      min-height="auto"
+      max-width="720px"
+    >
+      <div
+        style="
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          background: #f8fafc;
+          min-height: 220px;
+        "
+      >
+        <v-alert dense text color="info" v-if="mutationLogLoading">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <v-progress-circular
+              indeterminate
+              color="info"
+              size="18"
+              width="2"
+            ></v-progress-circular>
+            <span>Loading mutation history...</span>
+          </div>
+        </v-alert>
+
+        <v-alert
+          dense
+          text
+          color="grey"
+          v-else-if="mutationLogs.length === 0"
+        >
+          No mutation history found for this subledger.
+        </v-alert>
+
+        <v-alert
+          dense
+          text
+          color="error"
+          v-if="mutationLogError"
+          style="white-space: pre-wrap"
+        >
+          {{ mutationLogError }}
+        </v-alert>
+
+        <v-card
+          v-for="log in mutationLogs"
+          :key="log.id"
+          outlined
+          style="padding: 14px"
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              gap: 12px;
+              flex-wrap: wrap;
+              align-items: flex-start;
+            "
+          >
+            <div>
+              <div style="font-size: 12px; color: #64748b; font-weight: bold">
+                CHANGED BY
+              </div>
+              <div style="margin-top: 4px; font-weight: bold">
+                {{ log.created_by_name || "-" }}
+              </div>
+            </div>
+            <div style="text-align: right">
+              <div style="font-size: 12px; color: #64748b; font-weight: bold">
+                CHANGED AT
+              </div>
+              <div style="margin-top: 4px">
+                {{ formatMutationDate(log.created_at) }}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="
+              margin-top: 12px;
+              padding: 12px;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              background: white;
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            "
+          >
+            <div><span style="font-weight: bold">Type:</span> {{ getMutationTypeLabel(log) }}</div>
+            <div v-for="entry in getMutationLogEntries(log)" :key="entry.label">
+              <span style="font-weight: bold">{{ entry.label }}:</span>
+              {{ entry.value }}
+            </div>
+          </div>
+        </v-card>
+      </div>
+    </v-action-dialog>
+    <v-action-dialog
       v-model="dialogNote"
       :title="titleNote"
       min-height="75%"
@@ -989,6 +1101,7 @@ module.exports = {
       dialogFile: false,
       dialogUploadApproval: false,
       dialogEditAllocation: false,
+      dialogMutationLog: false,
       validUploadApproval: false,
       editAllocationValid: false,
       formFile: [
@@ -1281,6 +1394,10 @@ module.exports = {
       },
       subledgerReviseLoading: false,
       subledgerReviseGroups: [],
+      mutationLogLoading: false,
+      mutationLogError: "",
+      mutationLogs: [],
+      mutationLogTarget: null,
       editAllocationLoading: false,
       editAllocationTarget: null,
       editAllocationFormVisible: [],
@@ -3579,6 +3696,179 @@ module.exports = {
       } finally {
         self.editAllocationLoading = false;
       }
+    },
+    openMutationLog: async function (subledger) {
+      var self = this;
+      self.mutationLogTarget = subledger;
+      self.dialogMutationLog = true;
+      await self.getMutationLogs(subledger.id);
+    },
+    getMutationLogs: async function (subledgerId) {
+      var self = this;
+      self.mutationLogLoading = true;
+      self.mutationLogError = "";
+      self.mutationLogs = [];
+      try {
+        var res = await axios.get(App.url + "bom/subledgerrevisemutation", {
+          params: vTableParam({
+            filter: {
+              pr_subledger_id: subledgerId,
+            },
+            filterType: {},
+            filterCondition: {},
+            sortBy: ["id"],
+            sortDesc: [true],
+            limit: -1,
+          }),
+        });
+        if (!res.data.status) {
+          var errorMessage =
+            (res.data &&
+              (typeof res.data.data === "string"
+                ? res.data.data
+                : JSON.stringify(res.data.data || res.data.debug || res.data))) ||
+            "Failed to load mutation history";
+          self.mutationLogError = errorMessage;
+          console.error("Mutation log error:", res.data);
+          App.errorMsg({ message: errorMessage });
+          return;
+        }
+        self.mutationLogs = (res.data.data || []).map(function (item) {
+          var oldData = {};
+          try {
+            oldData = item.old_data ? JSON.parse(item.old_data) : {};
+          } catch (e) {
+            oldData = {};
+          }
+          item.old_data_parsed = oldData;
+          return item;
+        });
+      } catch (e) {
+        var fallbackMessage =
+          (e &&
+            e.response &&
+            e.response.data &&
+            (typeof e.response.data.data === "string"
+              ? e.response.data.data
+              : JSON.stringify(e.response.data))) ||
+          e.message ||
+          "Failed to load mutation history";
+        self.mutationLogError = fallbackMessage;
+        console.error("Mutation log request failed:", e);
+        App.errorMsg({ message: fallbackMessage });
+      } finally {
+        self.mutationLogLoading = false;
+      }
+    },
+    formatMutationDate: function (value) {
+      if (!value) return "-";
+      try {
+        return new Date(value).formatDate("DD/MM/YYYY HH:mm:ss");
+      } catch (e) {
+        return value;
+      }
+    },
+    getMutationTypeLabel: function (log) {
+      var data = (log && log.old_data_parsed) || {};
+      return data.type || "-";
+    },
+    getMutationLogEntries: function (log) {
+      var data = (log && log.old_data_parsed) || {};
+      var entries = [
+        {
+          label: "Description",
+          value: data.description,
+        },
+        {
+          label: "Qty",
+          value: data.qty,
+        },
+        {
+          label: "Unit Price",
+          value: data.unit_price
+            ? this.formatMoney(data.unit_price, data.currency || "IDR")
+            : null,
+        },
+        {
+          label: "Allocation",
+          value: data.allocation,
+        },
+        {
+          label: "Requirement",
+          value: data.requirement,
+        },
+        {
+          label: "Year Budget",
+          value: data.year_budget,
+        },
+        {
+          label: "Currency",
+          value: data.currency,
+        },
+        {
+          label: "Exchange Rate",
+          value: data.exchange_rate,
+        },
+      ];
+
+      if (data.type === "Project") {
+        entries = entries.concat([
+          {
+            label: "Project",
+            value: [data.project_no, data.project_name].filter(Boolean).join(" - "),
+          },
+          {
+            label: "Budget",
+            value: data.budget_name,
+          },
+        ]);
+      } else if (data.type === "Operational") {
+        entries = entries.concat([
+          {
+            label: "Department",
+            value: data.dept_name,
+          },
+          {
+            label: "Type Department",
+            value: data.type_operational_name,
+          },
+          {
+            label: "Sub Type Department",
+            value: data.sub_type_operational_name,
+          },
+        ]);
+      } else if (data.type === "Persediaan") {
+        entries.push({
+          label: "Persediaan",
+          value:
+            data.persediaan && data.persediaan.allocation
+              ? data.persediaan.allocation
+              : "Yes",
+        });
+      }
+
+      if (data.category_item_name) {
+        entries.push({
+          label: "Category Item",
+          value: data.category_item_name,
+        });
+      }
+      if (data.alokasi_pembelian) {
+        entries.push({
+          label: "Purchase Allocation",
+          value: data.alokasi_pembelian,
+        });
+      }
+      if (data.rnd_name) {
+        entries.push({
+          label: "R&D",
+          value: data.rnd_name,
+        });
+      }
+
+      return entries.filter(function (entry) {
+        return entry.value !== undefined && entry.value !== null && entry.value !== "";
+      });
     },
     saveEditAllocation: async function () {
       var self = this;

@@ -85,4 +85,64 @@ class PrsubledgerModel extends Model
 			return [false, $this->db->error()];
 		return [true, $query->getResult()];
 	}
+
+    function mutationSnapshot($id){
+		$query = $this->db->query("
+            select
+                s.id as pr_subledger_id,
+                s.pr_part_id,
+                pp.pr_id,
+                s.description,
+                s.qty,
+                s.unit_price,
+                s.allocation,
+                s.project_id,
+                mp.project_no,
+                mp.project_name,
+                s.budget_id,
+                b.name as budget_name,
+                s.project_type,
+                s.dept_id,
+                md.dept_name,
+                s.type_operational_id,
+                top.name as type_operational_name,
+                s.sub_type_operational_id,
+                sto.name as sub_type_operational_name,
+                s.category_item_id,
+                ci.name as category_item_name,
+                s.alokasi_pembelian,
+                s.rnd_id,
+                rnd.name as rnd_name,
+                s.currency,
+                s.exchange_rate,
+                s.rate_date,
+                s.year_budget,
+                s.requirement,
+                s.created_by,
+                s.created_date,
+                s.modified_by,
+                s.modified_date
+            from pr_subledger s
+            left join pr_part pp on pp.id = s.pr_part_id
+            left join m_project mp on mp.id = s.project_id
+            left join project_budgets pb on pb.id = s.budget_id
+            left join budgets b on b.id = pb.budget_id
+            left join m_department md on md.id = s.dept_id
+            left join type_operationals top on top.id = s.type_operational_id
+            left join type_sub_operationals sto on sto.id = s.sub_type_operational_id
+            left join m_category_item ci on ci.id = s.category_item_id
+            left join research_and_developments rnd on rnd.id = s.rnd_id
+            where s.id = ?
+            limit 1
+        ", [$id]);
+
+		if(!$query)
+			return [false, $this->db->error()];
+
+        $result = $query->getResult();
+        if(!count($result))
+			return [false, 'Data not found'];
+
+		return [true, $result[0]];
+    }
 }
