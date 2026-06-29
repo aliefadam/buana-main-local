@@ -197,6 +197,8 @@ class PurchaseOrderItemGroupModel extends Model
 
                     i.item_name, 
 
+                    max(i.datasheet) as datasheet,
+
                     i.unit, 
 
                     i.original_manufacture, 

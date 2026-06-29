@@ -227,6 +227,7 @@
           small
           color="primary"
           outlined
+          v-if="history"
           :disabled="selected == false || subledgerReviseLoading"
           @click="openSubledgerRevise"
           >Subledger Revise</v-btn

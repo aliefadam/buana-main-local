@@ -78,11 +78,21 @@
       </template>
       <template v-slot:item.item_name="props">
         <a
-          :href="props.item.datasheet"
+          :href="getDatasheetUrl(props.item.datasheet)"
           v-if="props.item.datasheet"
           target="_blank"
           >{{ props.item.item_name }}</a
         ><span v-else>{{ props.item.item_name }}</span>
+      </template>
+      <template v-slot:item.item_id="props">
+        <a
+          v-if="props.item.datasheet"
+          href="#"
+          @click.prevent="openDatasheetPreview(props.item)"
+        >
+          {{ props.item.item_no }}
+        </a>
+        <span v-else>{{ props.item.item_no }}</span>
       </template>
       <template v-slot:prepend-body>
         <div style="font-weight: bold">
@@ -251,6 +261,24 @@
         name=""
         :data="dataid"
       ></purchase-item>
+    </v-action-dialog>
+    <v-action-dialog
+      :actions="false"
+      v-model="dialogDatasheet"
+      :title="datasheetDialogTitle"
+      fullscreen
+    >
+      <div
+        v-if="datasheetPreviewUrl"
+        style="height: 100%; width: 100%; background: #f5f5f5"
+      >
+        <iframe
+          :src="datasheetPreviewUrl"
+          frameborder="0"
+          style="border: 0; width: 100%; height: calc(100vh - 96px)"
+        ></iframe>
+      </div>
+      <div v-else style="padding: 16px">Datasheet not available.</div>
     </v-action-dialog>
   </v-container>
 </template>
@@ -929,12 +957,15 @@ module.exports = {
       dialogPR: false,
       dialogBOM: false,
       dialogItem: false,
+      dialogDatasheet: false,
       allowUpdateInDialog: false,
       dialogCharge: false,
       selected: false,
       total_item_price: 0,
       grand_total_price: 0,
       dataid: {},
+      datasheetPreviewUrl: "",
+      datasheetDialogTitle: "Item Datasheet",
     };
   },
   watch: {
@@ -992,6 +1023,28 @@ module.exports = {
     openUpdateData: function () {
       this.allowUpdateInDialog = true;
       this.dialogItem = true;
+    },
+    getDatasheetUrl: function (datasheet) {
+      var value = String(datasheet || "").trim();
+      if (!value) return "";
+      if (/^https?:\/\//i.test(value)) return value;
+      if (/^\/\//.test(value)) return window.location.protocol + value;
+      if (/^uploads\//i.test(value)) return App.url + value;
+      if (/^\//.test(value)) return App.url.replace(/\/api\/?$/i, "") + value;
+      return App.url + "uploads/" + value.replace(/^\/+/, "");
+    },
+    openDatasheetPreview: function (item) {
+      var url = this.getDatasheetUrl(item && item.datasheet);
+      if (!url) {
+        App.errorMsg({
+          message: "Datasheet not available for this item.",
+        });
+        return;
+      }
+      this.datasheetDialogTitle =
+        "Item Datasheet - " + (item.item_no || item.item_name || "");
+      this.datasheetPreviewUrl = url;
+      this.dialogDatasheet = true;
     },
     onSaveUpdateData: function () {
       var self = this;
